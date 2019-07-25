@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>在线添加节点</title>
+<style type="text/css">
+p {text-indent:24px;line-height:10px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">六 节点数据迁移</h1>
+        <h2>1 创建数据目录并上传数据</h2>
+        	<p><img src="6.1.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        <h2>2 查看是否上传成功</h2>
+        	<p><img src="6.2.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        <h2>3 查看其各个节点存储状态</h2>
+            <p><img src="6.3.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="6.4.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="6.5.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="6.6.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        <h2>4 配置下线</h2>
+        	<p>[hadoop@server1 hadoop]# vim etc/hadoop/hdfs.site.xml</p>
+        	<p><img src="6.7.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        <h4>配置下线用户为server3</h4>
+        	
+        	<p><img src="6.8.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        	<p><img src="6.9.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        <h2>5 生效配置文件</h2>
+        	<p><img src="6.10.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        
+        <h2>6 查看serever3状态，如果为normal 则表示迁移完成，否则未完成</h2>
+        	<p><img src="6.11.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        
+        
+        <h2>7 查看其他节点存储，发现存储已经增加，则表明数据迁移完成</h2>
+            <p><img src="6.12.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="6.13.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="6.14.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+        <h2>8 关闭datanode节点，下线成功</h2>
+        	<p><img src="6.15.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        <h2>9 开启其他节点的nodemanager服务</h2>
+        	<p><img src="6.16.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+
+			<p style="padding:20px 0px 30px 500px;"><a href="gky.html" >下一篇：高可用</a></p>
+	</div>
+</body>
+</html>

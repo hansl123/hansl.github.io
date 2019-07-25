@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<!-- TemplateBeginEditable name="doctitle" -->
+<title>盗链帝国</title>
+<!-- TemplateEndEditable -->
+<!-- TemplateBeginEditable name="head" -->
+<!-- TemplateEndEditable -->
+<style type="text/css">
+a {text-decoration: none;color:black;}
+a:hover{color: red;}
+li {list-style:none;line-height:40px;font-size:25px;}
+span {color:black;}
+span:hover{color: red;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');
+	     background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:100%;height:auto">
+    	<h2>Tomcat 并发优化</h2>
+        
+        
+        <p>Webbench能测试处在相同硬件上，不同服务的性能以及不同硬件上同一个服务的运行状况。webbench的标准测试可以向我们展示服务器的两项内容：每分钟相应请求数和每秒钟传输数据量。webbench不但能具有便准静态页面的测试能力，还能对动态页面（ASP,PHP,JAVA,CGI）进 行测试的能力。还有就是他支持对含有SSL的安全网站例如电子商务网站进行静态或动态的性能测试,最多可以模拟3万个并发连接去测试网站的负载能力.</p>
+        
+        官方主页:http://home.tiscali.cz/~cz210552/webbench.html
+        
+        WebBench安装：
+
+        sudoyum -y installctags
+        wget http://gitsea.com/wp-content/uploads/2013/06/webbench-1.5.tar.gz
+        tarzxvf webbench-1.5.tar.gz
+        cdwebbench-1.5
+        make
+        makeinstall
+        WebBench使用：
+        
+        1
+        webbench -c 1000 -t 10 http://www.google.com.hk/
+        参数说明: webbench -c 并发数 -t 运行测试时间 URL
+        
+        例子：
+        
+        webbench.jpg
+        
+        返回结果:每分钟响应请求数：2868 pages/min，每秒钟传输数据量373959 bytes/sec.成功请求478次，失败0次。
+        
+        注意，在优化配置和测试前，需要修改系统默认的最大线程数和最大进程数，相应的修改方法 请参考 http://gitsea.com/2013/05/23/linux-ulimit%E8%AF%A6%E8%A7%A3/
+        
+        Tomcat 常用运行模式有3种，分别为 bio,nio,apr.生产环境建议用apr，从操作系统级别来解决异步的IO问题,大幅度的提高性能.
+        
+        安装APR
+
+        sudoyum -y installapr apr-devel
+        tarzxvf tomcat-native.tar.gz //该文件在tomcat的bin目录下面
+        cdtomcat-native-1.1.24-src/jni/native
+        ./configure--with-apr=/usr/bin/apr-1-config
+        make
+        makeinstall
+        安装完成之后 会出现如下提示信息
+        
+        1
+        2
+        Libraries have been installed in:
+        /usr/local/apr/lib
+        安装成功后还需要对tomcat设置环境变量，方法是在catalina.sh文件中增加一 行：
+        
+        1
+        CATALINA_OPTS="-Djava.library.path=/usr/local/apr/lib"
+        修改8080端对应的
+        
+        1
+        protocol="org.apache.coyote.http11.Http11AprProtocol"
+        启动tomcat之后，查看日志
+        
+        more TOMCAT_HOME/logs/catalina.out
+        
+        1
+        2
+        3
+        4
+        六月 29, 2013 11:55:35 上午 org.apache.catalina.core.AprLifecycleListener init
+        INFO: Loaded APR based Apache Tomcat Native library 1.1.27 using APR version 1.3.9.
+        六月 29, 2013 11:55:35 上午 org.apache.catalina.core.AprLifecycleListener init
+        INFO: APR capabilities: IPv6 [true], sendfile [true], accept filters [false], random [true].
+        Tomcat 优化
+        
+        1.JVM 调优
+        
+        在TOMCAT_HOME/bin/catalina.sh 增加如下语句，具体数值视情况而定。
+        
+        1
+        JAVA_OPTS="-Xms1024m -Xmx1024m -Xss1024K -XX:PermSize=64m -XX:MaxPermSize=128m"
+        参数详解
+        
+        1
+        2
+        3
+        4
+        5
+        -Xms JVM初始化堆内存大小
+        -Xmx JVM堆的最大内存
+        -Xss 线程栈大小
+        -XX:PermSize JVM非堆区初始内存分配大小
+        -XX:MaxPermSize JVM非堆区最大内存
+        建议和注意事项:
+        
+        -Xms和-Xmx选项设置为相同堆内存分配，以避免在每次GC 后调整堆的大小，堆内存建议占内存的60%~80%;非堆内存是不可回收内存，大小视项目而定;线程栈大小推荐256k.
+        
+        <h2>2.关闭DNS反向查询</h2>
+        
+        在Connector中加入如下参数
+        
+        enableLookups="false"
+        <h2>3.使用APR</h2>
+        
+        具体安装操作，见文章开头部分
+        
+        <h2>4.优化tomcat参数</h2>
+
+            <Connector port="8080"
+            protocol="org.apache.coyote.http11.Http11AprProtocol"
+            connectionTimeout="20000"//链接超时时长
+            redirectPort="8443"
+            maxThreads="500"//设定处理客户请求的线程的最大数目，决定了服务器可以同时响应客户请求的数,默认200
+            minSpareThreads="20"//初始化线程数，最小空闲线程数，默认为10
+            acceptCount="1000"//当所有可以使用的处理请求的线程数都被使用时，可以被放到处理队列中请求数，请求数超过这个数的请求将不予处理，默认100
+            enableLookups="false"
+            URIEncoding="UTF-8"/>
+        <h2>5.优化网络参数</h2>
+        
+            <p>修改/etc/sysctl.cnf文件，增加如下内容
+            <p>net.core.netdev_max_backlog = 32768
+            <p>net.core.somaxconn = 32768
+            <p>net.core.wmem_default = 8388608
+            <p>net.core.rmem_default = 8388608
+            <p>net.core.rmem_max = 16777216
+            <p>net.core.wmem_max = 16777216
+            <p>net.ipv4.ip_local_port_range = 1024 65000
+            <p>net.ipv4.route.gc_timeout = 100
+            <p>net.ipv4.tcp_fin_timeout = 30
+            <p>net.ipv4.tcp_keepalive_time = 1200
+            <p>net.ipv4.tcp_timestamps = 0
+            <p>net.ipv4.tcp_synack_retries = 2
+            <p>net.ipv4.tcp_syn_retries = 2
+            <p>net.ipv4.tcp_tw_recycle = 1
+            <p>net.ipv4.tcp_tw_reuse = 1
+            <p>net.ipv4.tcp_mem = 94500000 915000000 927000000
+            <p>net.ipv4.tcp_max_orphans = 3276800
+            <p>net.ipv4.tcp_max_syn_backlog = 65536
+            <p><strong>保存退出，执行sysctl -p生效</strong></p>	
+    	
+    </div>
+</body>
+</html>

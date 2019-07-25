@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Ansible安装</title>
+<style type="text/css">
+p {text-indent:24px;line-height:24px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">Ansible安装和测试</h1>
+        	<p>ansible 默认提供了很多模块来供我们使用。在 Linux 中，我们可以通过 ansible-doc -l 命令查看到当前 ansible 都支持哪些模块，通过 ansible-doc  -s  模块名  又可以查看该模块有哪些参数可以使用。</p>
+
+    	<h4>一、环境准备：</h4>
+        	<p>[root@master ~]# cat /etc/redhat-release</p>
+            <p>CentOS release 7.2 (Final)</p>
+
+       		<p>hostname       ip</p>
+            <p>Master    master         10.0.0.28</p>
+            <p>Minion    client01        10.0.0.20</p>
+            <p>Minion    client02        10.0.0.21</p>
+        <h4>二、安装Ansible：</h4>
+        	<p>1.更改yum 源：</p>
+            <p>[root@master ~]#wget -O /etc/yum.repos.d/epel.repo http://mirrors.aliyun.com/repo/epel-7.repo</p>
+            
+        	<p>2.安装Ansible</p>
+
+            <p>[root@master ~]# yum install ansible -y</p>
+        	<p>3.免密要认证</p>
+            
+            <p>[root@master ~]#ssh-keygen -t rsa</p>
+             <p>ssh-copy-id -i ~/.ssh/id_rsa.pub 10.0.0.20</p>
+             <p>ssh-copy-id -i ~/.ssh/id_rsa.pub 10.0.0.21</p>
+             <p>cp /etc/ansible/hosts /etc/ansible/hosts.ori/etc/ansible/hosts</p>
+             <p>vim /etc/ansible/hosts</p>
+             <p>ansible 默认提供了很多模块来供我们使用。在 Linux 中，我们可以通过 ansible-doc -l 命令查看到当前 ansible 都支持哪些模块，通过 ansible-doc -s 模块名 又可以查看该模块有哪些参数可以使用。</p>
+
+<h4>5.建立host文件</h4>
+<p>Ansible 的host文件默认在/etc/ansible/ 这个目录下面，采用rpm安装的ansible会将该host文件作为范例，其中提示ansible是支持域名和IP的两种客户端命名格式的，进过测试时没有问题的，还支持不同的安装分组方法，建议好好看看，这里提供三台机器，分为master client01 client02 将他们分为两组 master 和slave</p>
+
+<p>[root@master ~]# cat /etc/ansible/hosts</p>
+<p>[localhost]</p>
+<p>127.0.0.1</p>
+<p>[slave]</p>
+<p>10.0.0.20</p>
+<p>10.0.0.21</p>
+<h4>6.测试ansible 的使用</h4>
+
+<p>在这里使用ping模块：</p>
+
+<p>[root@master ~]# ansible slave -i /etc/ansible/hosts -m ping</p>
+<p>10.0.0.20 | SUCCESS => {</p>
+<p>    "changed": false, </p>
+<p>    "ping": "pong"</p>
+<p>}</p>
+<p>10.0.0.21 | SUCCESS => {</p>
+ <p>   "changed": false, </p>
+ <p>   "ping": "pong"</p>
+<p>}</p>
+<p>}</p>
+<p>解读：从返回值分析，ansiable salve 接待你10.0.0.20,10.0.0.21 的ping</p>
+<p>值成功。说明ansiable 已经能够使用。</p>
+
+<h4>7.验证是否支持域名解析测试:</h4>
+<p>tail -3 /etc/hosts
+<p>10.0.0.28 master.test.com
+<p>10.0.0.21 client02
+<p>10.0.0.20 agent.test.com
+<p>[root@master ~]# cat /etc/ansible/hosts
+<p>[localhost]
+<p>master.test.com
+<p>[slave]
+<p>client02
+<p>agent.test.com
+<p>[root@master ~]# ansible slave -i /etc/ansible/hosts -m ping
+
+<p>paramiko: The authenticity of host 'agent.test.com' can't be established.
+<p>The ssh-rsa key fingerprint is 3d906ef1d450e4cc7031aef5e8c296f6.
+<p>Are you sure you want to continue connecting (yes/no)?
+<p>yes
+
+<p>paramiko: The authenticity of host 'client02' can't be established.
+<p>The ssh-rsa key fingerprint is 3d906ef1d450e4cc7031aef5e8c296f6.
+<p>Are you sure you want to continue connecting (yes/no)?
+<p>agent.test.com | SUCCESS => {
+<p>    "changed": false, 
+<p>    "ping": "pong"
+<p>}
+<p>yes
+<p>client02 | SUCCESS => {
+<p>    "changed": false, 
+<p>    "ping": "pong"
+<p>}
+<p>[root@master ~]# ansible slave -i /etc/ansible/hosts -m ping
+<p>agent.test.com | SUCCESS => {
+<p>    "changed": false, 
+<p>    "ping": "pong"
+<p>}
+<p>client02 | SUCCESS => {
+ <p>   "changed": false, 
+ <p>   "ping": "pong"
+<p>}
+<p>验证是支持服务器本地域名解析的
+        	<p style="padding:20px 0px 30px 500px;"><a href="djdbs.html" >......</a></p>
+	</div>
+</body>
+</html>

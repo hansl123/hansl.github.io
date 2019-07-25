@@ -1,0 +1,486 @@
+
+<!DOCTYPE html>
+<html lang="zh-cn"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="origin" />
+<title>lvs+keepalived+nginx实现高性能负载均衡集群 - 青衫lys - 博客园</title>
+</head>
+<body>
+	<div class = "postTitle">
+		<p style="font-size:26px;margin-left:300px;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/liuyisai/p/5990645.html" style="font-size:26px;magin-left:200px;">lvs+keepalived+nginx实现高性能负载均衡集群</a></p>
+	</div>
+	<h2  style="font-size:26px;magin:200px;">一、为什么要使用负载均衡技术？</h2>
+        <p>1、系统高可用性</p>
+        <p>2、&nbsp;&nbsp;系统可扩展性</p>
+        <p>3、&nbsp;&nbsp;负载均衡能力</p>
+        <p>LVS+keepalived能很好的实现以上的要求，LVS提供负载均衡，keepalived提供健康检查，故障转移，提高系统的可用性！采用这样的架构以后很容易对现有系统进行扩展，只要在后端添加或者减少realserver，只要更改lvs的配置文件，并能实现无缝配置变更！</p>
+    <h2>二、LVS+Keepalived介绍</h2>
+        <p>1、&nbsp;&nbsp;LVS</p>
+        <p>LVS是一个开源的软件，可以实现LINUX平台下的简单负载均衡。LVS是Linux Virtual Server的缩写，意思是Linux虚拟服务器。目前有三种IP负载均衡技术（VS/NAT、VS/TUN和VS/DR）；八种调度算法（rr,wrr,lc,wlc,lblc,lblcr,dh,sh）。</p>
+        <p>2、&nbsp;&nbsp;keepalived</p>
+        <p align="left">Keepalived&nbsp;是运行在lvs&nbsp;之上，它的主要功能是实现真实机的故障隔离及负载均衡器间的失败切换，提高系统的可用性</p>
+    <h2 align="left">三、环境：</h2>
+        <p align="left">四台服务器，系统全为CentOS6.8：</p>
+        <p align="left">192.168.2.203 master lvs+keepalived</p>
+        <p align="left">192.168.2.202 backup lvs+keepalived</p>
+        <p align="left">192.168.2.204 web1（nginx）</p>
+        <p align="left">192.168.2.205 web2 （nginx）</p>
+        <p align="left">vip：192.168.2.13</p>
+        <p align="left">其中nginx已预装好，这里不再写搭建过程</p>
+        <p align="left">&nbsp;</p>
+    <h2 align="left">四、搭建并配置</h2>
+        <p align="left">1、分别在<span lang="EN-US">backup lvs和<span lang="EN-US">master lvs上安装lvs</span></span></p>
+        <div class="cnblogs_code">
+        <pre><span style="color: #008080;"> 1</span> root@bogon src]# yum -<span style="color: #000000;">y install ipvsadm
+        </span><span style="color: #008080;"> 2</span> <span style="color: #000000;">已加载插件：fastestmirror
+        </span><span style="color: #008080;"> 3</span> <span style="color: #000000;">设置安装进程
+        </span><span style="color: #008080;"> 4</span> <span style="color: #000000;">Determining fastest mirrors
+        </span><span style="color: #008080;"> 5</span> epel/metalink                                                                                   | <span style="color: #800080;">5.4</span> kB     <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>     
+        <span style="color: #008080;"> 6</span>  * <span style="color: #0000ff;">base</span><span style="color: #000000;">: mirror.lzu.edu.cn
+        </span><span style="color: #008080;"> 7</span> <span style="color: #000000;">... ...
+        </span><span style="color: #008080;"> 8</span> <span style="color: #000000;">已安装:
+        </span><span style="color: #008080;"> 9</span>   ipvsadm.x86_64 <span style="color: #800080;">0</span>:<span style="color: #800080;">1.26</span>-<span style="color: #800080;">4</span><span style="color: #000000;">.el6                                                                                          
+        </span><span style="color: #008080;">10</span> 
+        <span style="color: #008080;">11</span> <span style="color: #000000;">作为依赖被安装:
+        </span><span style="color: #008080;">12</span>   libnl.x86_64 <span style="color: #800080;">0</span>:<span style="color: #800080;">1.1</span>.<span style="color: #800080;">4</span>-<span style="color: #800080;">2</span><span style="color: #000000;">.el6                                                                                           
+        </span><span style="color: #008080;">13</span> 
+        <span style="color: #008080;">14</span> 完毕！</pre>
+        </div>
+        <p>2、把ipvsadm模块加载进系统</p>
+        <div class="cnblogs_code">
+        <pre><span style="color: #008080;">1</span> <span style="color: #000000;">[root@bogon src]# ipvsadm
+        </span><span style="color: #008080;">2</span> IP Virtual Server version <span style="color: #800080;">1.2</span>.<span style="color: #800080;">1</span> (size=<span style="color: #800080;">4096</span><span style="color: #000000;">)
+        </span><span style="color: #008080;">3</span> <span style="color: #000000;">Prot LocalAddress:Port Scheduler Flags
+        </span><span style="color: #008080;">4</span>   -&gt;<span style="color: #000000;"> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+        </span><span style="color: #008080;">5</span> [root@bogon src]# <span style="color: #0000ff;">lsmod</span> | <span style="color: #0000ff;">grep</span><span style="color: #000000;"> ip_vs
+        </span><span style="color: #008080;">6</span> ip_vs                 <span style="color: #800080;">126897</span>  <span style="color: #800080;">0</span> 
+        <span style="color: #008080;">7</span> libcrc32c               <span style="color: #800080;">1246</span>  <span style="color: #800080;">1</span><span style="color: #000000;"> ip_vs
+        </span><span style="color: #008080;">8</span> ipv6                  <span style="color: #800080;">336282</span>  <span style="color: #800080;">270</span> ip_vs,ip6t_REJECT,nf_conntrack_ipv6,nf_defrag_ipv6</pre>
+        </div>
+        <p>3、分别在<span lang="EN-US">backup lvs和<span lang="EN-US">master lvs上安装keepalived（keepalived官网：http://www.keepalived.org/）</span></span></p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon src]# <span style="color: #0000ff;">tar</span> zxf keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>.<span style="color: #0000ff;">tar</span><span style="color: #000000;">.gz 
+        [root@bogon src]# cd keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span><span style="color: #000000;">
+        [root@bogon keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# ./configure --sysconf=/etc --with-kernel-<span style="color: #0000ff;">dir</span>=/lib/modules/<span style="color: #800080;">2.6</span>.<span style="color: #800080;">32</span>-<span style="color: #800080;">642.3</span>.<span style="color: #800080;">1</span>.el6.x86_64/<span style="color: #000000;">
+        报错：
+        configure: error: 
+          </span>!!! OpenSSL is not properly installed on your system. !!!
+          !!! Can not include OpenSSL headers files.            !!!</pre>
+        </div>
+        <p>系统缺少openssl-devel包所致</p>
+        <p>安装openssl-devel</p>
+        <div class="cnblogs_code">
+        <pre>root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">yum</span> -y <span style="color: #0000ff;">install</span> openssl-devel</pre>
+        </div>
+        <p>再次编辑安装</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# ./configure --sysconf=/etc --with-kernel-<span style="color: #0000ff;">dir</span>=/lib/modules/<span style="color: #800080;">2.6</span>.<span style="color: #800080;">32</span>-<span style="color: #800080;">642.3</span>.<span style="color: #800080;">1</span>.el6.x86_64/<span style="color: #000000;">
+        Keepalived configuration
+        </span>------------------------<span style="color: #000000;">
+        Keepalived version       : </span><span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span><span style="color: #000000;">
+        Compiler                 : </span><span style="color: #0000ff;">gcc</span><span style="color: #000000;">
+        Preprocessor flags       : </span>-I/lib/modules/<span style="color: #800080;">2.6</span>.<span style="color: #800080;">32</span>-<span style="color: #800080;">642.3</span>.<span style="color: #800080;">1</span>.el6.x86_64<span style="color: #008000;">//</span><span style="color: #008000;">include</span>
+        Compiler flags           : -Wall -Wunused -Wstrict-<span style="color: #000000;">prototypes
+        Linker flags             : 
+        Extra Lib                : </span>-ldl -lssl -<span style="color: #000000;">lcrypto 
+        Use IPVS Framework       : Yes
+        IPVS use libnl           : No
+        IPVS syncd attributes    : No
+        IPVS </span><span style="color: #800080;">64</span><span style="color: #000000;"> bit stats        : No
+        fwmark socket support    : Yes
+        Use VRRP Framework       : Yes
+        Use VRRP VMAC            : Yes
+        Use VRRP authentication  : Yes
+        With ip rules</span>/<span style="color: #000000;">routes     : Yes
+        SNMP keepalived support  : No
+        SNMP checker support     : No
+        SNMP RFCv2 support       : No
+        SNMP RFCv3 support       : No
+        SHA1 support             : No
+        Use Debug flags          : No
+        Stacktrace support       : No
+        Memory alloc check       : No
+        libnl version            : None
+        Use IPv4 devconf         : No
+        Use libiptc              : No
+        Use libipset             : No
+        Build genhash            : Yes
+        Build documentation      : No
+        
+        [root@bogon keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">make</span> &amp;&amp; <span style="color: #0000ff;">make</span> <span style="color: #0000ff;">install</span></pre>
+        </div>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">ln</span> -s /usr/local/sbin/keepalived /sbin/<span style="color: #000000;">
+        [root@bogon keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# chkconfig --<span style="color: #000000;">add keepalived
+        [root@bogon keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# chkconfig --level <span style="color: #800080;">35</span> keepalived on</pre>
+        </div>
+        <p>4、配置keepalived</p>
+        <p>lvs-master的配置文件如下</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">cat</span> /etc/keepalived/<span style="color: #000000;">keepalived.conf
+        </span>! Configuration File <span style="color: #0000ff;">for</span><span style="color: #000000;"> keepalived
+        
+        global_defs {　　　　　　#全局配置部分
+        #   notification_email {　　　　　　<span lang="EN-US">#<span lang="EN-US">email&nbsp;通知，基本不用此处所以注释掉</span></span>
+        #     acassen@firewall.loc
+        #     failover@firewall.loc
+        #     sysadmin@firewall.loc
+        #  }
+        #   notification_email_from Alexandre.Cassen@firewall.loc
+        #   smtp_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span><span style="color: #000000;">
+        #   smtp_connect_timeout </span><span style="color: #800080;">30</span><span style="color: #000000;">
+           router_id LVS_DEVEL　　　　<span lang="EN-US">#<span lang="EN-US">&nbsp;设置<span lang="EN-US">lvs的<span lang="EN-US">id，在一个网络内应该是唯一的</span></span></span></span>
+           vrrp_skip_check_adv_addr　　
+           vrrp_strict
+           vrrp_garp_interval </span><span style="color: #800080;">0</span><span style="color: #000000;">
+           vrrp_gna_interval </span><span style="color: #800080;">0</span><span style="color: #000000;">
+        }
+        
+        vrrp_instance VI_1 {　　　　#vrrp实例定义部分
+            state MASTER　　　　<span lang="EN-US">&nbsp;#设置<span lang="EN-US">lvs的状态，报错<span lang="EN-US">MASTER和<span lang="EN-US">BACKUP两种，必须大写</span></span></span></span>
+            interface eth1　　　　<span lang="EN-US">#设置对外服务的接口</span>
+            virtual_router_id </span><span style="color: #800080;">60　　#设置虚拟路由标示，这个标示是一个数字，同一个vrrp实例使用唯一标示</span><span style="color: #000000;">
+            priority </span><span style="color: #800080;">100　　　　#定义优先级，数字越大优先级越高，在一个vrrp&mdash;&mdash;instance下，master的优先级必须大于backup</span><span style="color: #000000;">
+            advert_int </span><span style="color: #800080;">1　　　　#设定master与backup负载均衡器之间同步检查的时间间隔，单位是秒</span><span style="color: #000000;">
+            authentication {　　#设置验证类型和密码
+                auth_type PASS　　#主要有PASS和AH两种
+                auth_pass </span><span style="color: #800080;">1111　　#验证密码，同一个vrrp_instance下MASTER和BACKUP密码必须相同</span><span style="color: #000000;">
+            }
+            virtual_ipaddress {　　#设置虚拟ip地址，可以设置多个，每行一个
+                </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+            }
+        }
+        
+        virtual_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span> <span style="color: #800080;">80</span><span style="color: #000000;"> {　　#设置虚拟服务器，需要指定虚拟ip和服务端口
+            delay_loop </span><span style="color: #800080;">3　　　　<span lang="EN-US">#健康检查时间间隔</span></span><span style="color: #000000;">
+            lb_algo rr　　　　<span lang="EN-US">&nbsp;#负载均衡调度算法</span>
+            lb_kind DR　　　　<span lang="EN-US">#负载均衡转发规则</span>
+            persistence_timeout 50</span><span style="color: #800080;">　　　　<span lang="EN-US">#设置会话保持时间，对动态网页非常有用</span></span><span style="color: #000000;">
+            protocol TCP　　　　#指定转发协议类型，有TCP和UDP两种
+        
+            real_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.204</span> <span style="color: #800080;">80</span><span style="color: #000000;"> {　　#配置服务器节点1，需要指定real server的真实IP地址和端口
+                weight </span><span style="color: #800080;">1　　　　#设置权重，数字越大权重越高</span><span style="color: #000000;">
+            TCP_CHECK { 　　　　#realserver的状态监测设置部分单位秒
+                    connect_timeout </span><span style="color: #800080;">3　　　　#超时时间</span><span style="color: #000000;">
+                    nb_get_retry </span><span style="color: #800080;">3　　　　　　#重试次数</span><span style="color: #000000;">
+                    delay_before_retry </span><span style="color: #800080;">3　　　　#重试间隔</span><span style="color: #000000;">
+                 connect_port </span><span style="color: #800080;">80</span><span style="color: #000000;">    　　#监测端口
+            }
+        }
+            real_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span> <span style="color: #800080;">80</span><span style="color: #000000;"> {
+            weight </span><span style="color: #800080;">1</span><span style="color: #000000;">
+            TCP_CHECK {
+            connect_timeout </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            nb_get_retry </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            delay_before_retry </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            connect_port </span><span style="color: #800080;">80</span><span style="color: #000000;">
+                }
+            } 
+        
+        }</span></pre>
+        </div>
+        <p>&nbsp;</p>
+        <p align="left"><span lang="EN-US">LVS-backup的配置文件如下</span></p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">cat</span> /etc/keepalived/<span style="color: #000000;">keepalived.conf
+        </span>! Configuration File <span style="color: #0000ff;">for</span><span style="color: #000000;"> keepalived
+        
+        global_defs {
+        #   notification_email {
+        #     acassen@firewall.loc
+        #     failover@firewall.loc
+        #     sysadmin@firewall.loc
+        #  }
+        #   notification_email_from Alexandre.Cassen@firewall.loc
+        #   smtp_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span><span style="color: #000000;">
+           smtp_connect_timeout </span><span style="color: #800080;">30</span><span style="color: #000000;">
+           router_id LVS_DEVEL
+           vrrp_skip_check_adv_addr
+           vrrp_strict
+           vrrp_garp_interval </span><span style="color: #800080;">0</span><span style="color: #000000;">
+           vrrp_gna_interval </span><span style="color: #800080;">0</span><span style="color: #000000;">
+        }
+        
+        vrrp_instance VI_1 {
+            state BACKUP
+            interface eth1
+            virtual_router_id </span><span style="color: #800080;">60</span><span style="color: #000000;">
+            priority </span><span style="color: #800080;">80</span><span style="color: #000000;">
+            advert_int </span><span style="color: #800080;">1</span><span style="color: #000000;">
+            authentication {
+                auth_type PASS
+                auth_pass </span><span style="color: #800080;">1111</span><span style="color: #000000;">
+            }
+            virtual_ipaddress {
+                </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+            }
+        }
+        
+        virtual_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span> <span style="color: #800080;">80</span><span style="color: #000000;"> {
+            delay_loop </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            lb_algo rr
+            lb_kind DR
+            persistence_timeout </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            protocol TCP
+        
+            real_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.204</span> <span style="color: #800080;">80</span><span style="color: #000000;"> {
+                weight </span><span style="color: #800080;">1</span><span style="color: #000000;">
+            TCP_CHECK { 
+                    connect_timeout </span><span style="color: #800080;">3</span><span style="color: #000000;">
+                    nb_get_retry </span><span style="color: #800080;">3</span><span style="color: #000000;">
+                    delay_before_retry </span><span style="color: #800080;">3</span><span style="color: #000000;">
+                 connect_port </span><span style="color: #800080;">80</span><span style="color: #000000;">    
+            }
+        }
+            real_server </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span> <span style="color: #800080;">80</span><span style="color: #000000;"> {
+            weight </span><span style="color: #800080;">1</span><span style="color: #000000;">
+            TCP_CHECK {
+            connect_timeout </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            nb_get_retry </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            delay_before_retry </span><span style="color: #800080;">3</span><span style="color: #000000;">
+            connect_port </span><span style="color: #800080;">80</span><span style="color: #000000;">
+                }
+            } 
+        
+        }</span></pre>
+        </div>
+        <p>&nbsp;</p>
+        <p align="left">5、realserver的配置</p>
+        <p>两台web服务器都要执行下面脚本</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon www]# <span style="color: #0000ff;">cat</span> /etc/rc.d/init.d/realserver.<span style="color: #0000ff;">sh</span><span style="color: #000000;"> 
+        #</span>!/bin/<span style="color: #000000;">bash
+        # description: Config realserver lo and apply noarp
+         
+        SNS_VIP</span>=<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>
+         
+        /etc/rc.d/init.d/<span style="color: #000000;">functions
+         
+        </span><span style="color: #0000ff;">case</span> <span style="color: #800000;">"</span><span style="color: #800000;">$1</span><span style="color: #800000;">"</span> <span style="color: #0000ff;">in</span><span style="color: #000000;">
+        start)
+               </span><span style="color: #0000ff;">ifconfig</span> lo:<span style="color: #800080;">0</span> $SNS_VIP netmask <span style="color: #800080;">255.255</span>.<span style="color: #800080;">255.255</span><span style="color: #000000;"> broadcast $SNS_VIP
+               </span>/sbin/route add -host $SNS_VIP dev lo:<span style="color: #800080;">0</span>
+               <span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/lo/<span style="color: #000000;">arp_ignore
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/lo/<span style="color: #000000;">arp_announce
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">1</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/all/<span style="color: #000000;">arp_ignore
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">2</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/all/<span style="color: #000000;">arp_announce
+               sysctl </span>-p &gt;/dev/<span style="color: #0000ff;">null</span> <span style="color: #800080;">2</span>&gt;&amp;<span style="color: #800080;">1</span>
+               <span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">RealServer Start OK</span><span style="color: #800000;">"</span><span style="color: #000000;">
+         
+               ;;
+        stop)
+               </span><span style="color: #0000ff;">ifconfig</span> lo:<span style="color: #800080;">0</span><span style="color: #000000;"> down
+               route del $SNS_VIP </span>&gt;/dev/<span style="color: #0000ff;">null</span> <span style="color: #800080;">2</span>&gt;&amp;<span style="color: #800080;">1</span>
+               <span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/lo/<span style="color: #000000;">arp_ignore
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/lo/<span style="color: #000000;">arp_announce
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/all/<span style="color: #000000;">arp_ignore
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">0</span><span style="color: #800000;">"</span> &gt;/proc/sys/net/ipv4/conf/all/<span style="color: #000000;">arp_announce
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">RealServer Stoped</span><span style="color: #800000;">"</span><span style="color: #000000;">
+               ;;
+        </span>*<span style="color: #000000;">)
+               </span><span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">Usage: $0 {start|stop}</span><span style="color: #800000;">"</span><span style="color: #000000;">
+               exit </span><span style="color: #800080;">1</span>
+        <span style="color: #0000ff;">esac</span><span style="color: #000000;">
+         
+        exit </span><span style="color: #800080;">0</span></pre>
+        </div>
+        <div class="cnblogs_code">
+        <pre><span style="color: #000000;">[root@bogon www]# </span>/etc/rc.d/init.d/realserver.<span style="color: #0000ff;">sh</span><span style="color: #000000;"> start
+        </span>/etc/rc.d/init.d/realserver.<span style="color: #0000ff;">sh</span>: line <span style="color: #800080;">6</span>: /etc/rc.d/init.d/<span style="color: #000000;">functions: 权限不够
+        RealServer Start OK
+        [root@bogon www]# </span><span style="color: #0000ff;">ifconfig</span><span style="color: #000000;">
+        eth0      Link encap:Ethernet  HWaddr </span><span style="color: #800080;">00</span>:0C:<span style="color: #800080;">29</span>:<span style="color: #800080;">41</span>:<span style="color: #800080;">71</span><span style="color: #000000;">:DF  
+                  inet addr:</span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">12.129</span>  Bcast:<span style="color: #800080;">192.168</span>.<span style="color: #800080;">12.255</span>  Mask:<span style="color: #800080;">255.255</span>.<span style="color: #800080;">255.0</span><span style="color: #000000;">
+                  inet6 addr: fe80::20c:29ff:fe41:71</span><span style="color: #0000ff;">df</span>/<span style="color: #800080;">64</span><span style="color: #000000;"> Scope:Link
+                  UP BROADCAST RUNNING MULTICAST  MTU:</span><span style="color: #800080;">1500</span>  Metric:<span style="color: #800080;">1</span><span style="color: #000000;">
+                  RX packets:</span><span style="color: #800080;">728</span> errors:<span style="color: #800080;">0</span> dropped:<span style="color: #800080;">0</span> overruns:<span style="color: #800080;">0</span> frame:<span style="color: #800080;">0</span><span style="color: #000000;">
+                  TX packets:</span><span style="color: #800080;">98</span> errors:<span style="color: #800080;">0</span> dropped:<span style="color: #800080;">0</span> overruns:<span style="color: #800080;">0</span> carrier:<span style="color: #800080;">0</span><span style="color: #000000;">
+                  collisions:</span><span style="color: #800080;">0</span> txqueuelen:<span style="color: #800080;">1000</span><span style="color: #000000;"> 
+                  RX bytes:</span><span style="color: #800080;">137311</span> (<span style="color: #800080;">134.0</span> KiB)  TX bytes:<span style="color: #800080;">7369</span> (<span style="color: #800080;">7.1</span><span style="color: #000000;"> KiB)
+        
+        eth1      Link encap:Ethernet  HWaddr </span><span style="color: #800080;">00</span>:0C:<span style="color: #800080;">29</span>:<span style="color: #800080;">41</span>:<span style="color: #800080;">71</span><span style="color: #000000;">:E9  
+                  inet addr:</span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.204</span>  Bcast:<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.255</span>  Mask:<span style="color: #800080;">255.255</span>.<span style="color: #800080;">255.0</span><span style="color: #000000;">
+                  inet6 addr: fe80::20c:29ff:fe41:71e9</span>/<span style="color: #800080;">64</span><span style="color: #000000;"> Scope:Link
+                  UP BROADCAST RUNNING MULTICAST  MTU:</span><span style="color: #800080;">1500</span>  Metric:<span style="color: #800080;">1</span><span style="color: #000000;">
+                  RX packets:</span><span style="color: #800080;">119838</span> errors:<span style="color: #800080;">0</span> dropped:<span style="color: #800080;">0</span> overruns:<span style="color: #800080;">0</span> frame:<span style="color: #800080;">0</span><span style="color: #000000;">
+                  TX packets:</span><span style="color: #800080;">31612</span> errors:<span style="color: #800080;">0</span> dropped:<span style="color: #800080;">0</span> overruns:<span style="color: #800080;">0</span> carrier:<span style="color: #800080;">0</span><span style="color: #000000;">
+                  collisions:</span><span style="color: #800080;">0</span> txqueuelen:<span style="color: #800080;">1000</span><span style="color: #000000;"> 
+                  RX bytes:</span><span style="color: #800080;">23411786</span> (<span style="color: #800080;">22.3</span> MiB)  TX bytes:<span style="color: #800080;">2119106</span> (<span style="color: #800080;">2.0</span><span style="color: #000000;"> MiB)
+        
+        lo        Link encap:Local Loopback  
+                  inet addr:</span><span style="color: #800080;">127.0</span>.<span style="color: #800080;">0.1</span>  Mask:<span style="color: #800080;">255.0</span>.<span style="color: #800080;">0.0</span><span style="color: #000000;">
+                  inet6 addr: ::</span><span style="color: #800080;">1</span>/<span style="color: #800080;">128</span><span style="color: #000000;"> Scope:Host
+                  UP LOOPBACK RUNNING  MTU:</span><span style="color: #800080;">65536</span>  Metric:<span style="color: #800080;">1</span><span style="color: #000000;">
+                  RX packets:</span><span style="color: #800080;">2</span> errors:<span style="color: #800080;">0</span> dropped:<span style="color: #800080;">0</span> overruns:<span style="color: #800080;">0</span> frame:<span style="color: #800080;">0</span><span style="color: #000000;">
+                  TX packets:</span><span style="color: #800080;">2</span> errors:<span style="color: #800080;">0</span> dropped:<span style="color: #800080;">0</span> overruns:<span style="color: #800080;">0</span> carrier:<span style="color: #800080;">0</span><span style="color: #000000;">
+                  collisions:</span><span style="color: #800080;">0</span> txqueuelen:<span style="color: #800080;">0</span><span style="color: #000000;"> 
+                  RX bytes:</span><span style="color: #800080;">182</span> (<span style="color: #800080;">182.0</span> b)  TX bytes:<span style="color: #800080;">182</span> (<span style="color: #800080;">182.0</span><span style="color: #000000;"> b)
+        
+        lo:</span><span style="color: #800080;">0</span><span style="color: #000000;">      Link encap:Local Loopback  
+                  inet addr:</span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>  Mask:<span style="color: #800080;">255.255</span>.<span style="color: #800080;">255.255</span><span style="color: #000000;">
+                  UP LOOPBACK RUNNING  MTU:</span><span style="color: #800080;">65536</span>  Metric:<span style="color: #800080;">1</span></pre>
+        </div>
+        <p>6、启动keepalived并进行测试</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span><span style="color: #000000;">]# service keepalived start
+        正在启动 keepalived：                                      [确定]</span></pre>
+        </div>
+        <p>lvs-master</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">tail</span> -f /var/log/<span style="color: #000000;">messages 
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">46</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">46</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">46</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Netlink reflector reports IP <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;"> added
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">46</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: VRRP_Instance(VI_1) Sending/queueing gratuitous ARPs on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span></pre>
+        </div>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# ipvsadm -L -<span style="color: #000000;">n
+        IP Virtual Server version </span><span style="color: #800080;">1.2</span>.<span style="color: #800080;">1</span> (size=<span style="color: #800080;">4096</span><span style="color: #000000;">)
+        Prot LocalAddress:Port Scheduler Flags
+          </span>-&gt;<span style="color: #000000;"> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+        TCP  </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>:<span style="color: #800080;">80</span> rr persistent <span style="color: #800080;">3</span>
+          -&gt; <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.204</span>:<span style="color: #800080;">80</span>             Route   <span style="color: #800080;">1</span>      <span style="color: #800080;">0</span>          <span style="color: #800080;">0</span>         
+          -&gt; <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>:<span style="color: #800080;">80</span>             Route   <span style="color: #800080;">1</span>      <span style="color: #800080;">0</span>          <span style="color: #800080;">0</span>      </pre>
+        </div>
+        <p>访问curl http://192.168.2.13/test.txt</p>
+        <div class="cnblogs_code">
+        <pre>[root@www etc]# curl http:<span style="color: #008000;">//</span><span style="color: #008000;">192.168.2.13/test.txt</span>
+        <span style="color: #000000;">it is web2
+        [root@www etc]# curl http:</span><span style="color: #008000;">//</span><span style="color: #008000;">192.168.2.13/test.txt</span>
+        it is web2</pre>
+        </div>
+        <p>关掉web2再次测试</p>
+        <div class="cnblogs_code">
+        <pre>[root@www etc]# curl http:<span style="color: #008000;">//</span><span style="color: #008000;">192.168.2.13/test.txt</span>
+        <span style="color: #000000;">it is web1
+        [root@www etc]# curl http:</span><span style="color: #008000;">//</span><span style="color: #008000;">192.168.2.13/test.txt</span>
+        it is web1</pre>
+        </div>
+        <p>查看lvs-master</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# ipvsadm -L -<span style="color: #000000;">n
+        IP Virtual Server version </span><span style="color: #800080;">1.2</span>.<span style="color: #800080;">1</span> (size=<span style="color: #800080;">4096</span><span style="color: #000000;">)
+        Prot LocalAddress:Port Scheduler Flags
+          </span>-&gt;<span style="color: #000000;"> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+        TCP  </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>:<span style="color: #800080;">80</span> rr persistent <span style="color: #800080;">3</span>
+          -&gt; <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.204</span>:<span style="color: #800080;">80</span>             Route   <span style="color: #800080;">1</span>      <span style="color: #800080;">0</span>          <span style="color: #800080;">2</span><span style="color: #000000;">         
+        [root@bogon keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">tail</span> -f /var/log/<span style="color: #000000;">messages 
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">28</span>:<span style="color: #800080;">58</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: TCP connection to [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span><span style="color: #000000;"> failed.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: TCP connection to [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span><span style="color: #000000;"> failed.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Check on service [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span> failed after <span style="color: #800080;">1</span><span style="color: #000000;"> retry.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Removing service [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span> from VS [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>]:<span style="color: #800080;">80</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Remote SMTP server [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span>]:<span style="color: #800080;">25</span><span style="color: #000000;"> connected.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">31</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Timeout reading data to remote SMTP server [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span>]:<span style="color: #800080;">25</span>.</pre>
+        </div>
+        <p>已经自动把web2剔除</p>
+        <p>打开web2再次查看</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# ipvsadm -L -<span style="color: #000000;">n
+        IP Virtual Server version </span><span style="color: #800080;">1.2</span>.<span style="color: #800080;">1</span> (size=<span style="color: #800080;">4096</span><span style="color: #000000;">)
+        Prot LocalAddress:Port Scheduler Flags
+          </span>-&gt;<span style="color: #000000;"> RemoteAddress:Port           Forward Weight ActiveConn InActConn
+        TCP  </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>:<span style="color: #800080;">80</span> rr persistent <span style="color: #800080;">3</span>
+          -&gt; <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.204</span>:<span style="color: #800080;">80</span>             Route   <span style="color: #800080;">1</span>      <span style="color: #800080;">0</span>          <span style="color: #800080;">0</span>         
+          -&gt; <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>:<span style="color: #800080;">80</span>             Route   <span style="color: #800080;">1</span>      <span style="color: #800080;">0</span>          <span style="color: #800080;">0</span><span style="color: #000000;">         
+        [root@bogon keepalived</span>-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span>]# <span style="color: #0000ff;">tail</span> -f /var/log/<span style="color: #000000;">messages 
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">19</span>:<span style="color: #800080;">51</span> bogon Keepalived_vrrp[<span style="color: #800080;">6597</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">28</span>:<span style="color: #800080;">58</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: TCP connection to [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span><span style="color: #000000;"> failed.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: TCP connection to [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span><span style="color: #000000;"> failed.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Check on service [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span> failed after <span style="color: #800080;">1</span><span style="color: #000000;"> retry.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Removing service [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span> from VS [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>]:<span style="color: #800080;">80</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Remote SMTP server [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span>]:<span style="color: #800080;">25</span><span style="color: #000000;"> connected.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">29</span>:<span style="color: #800080;">31</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Timeout reading data to remote SMTP server [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span>]:<span style="color: #800080;">25</span><span style="color: #000000;">.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">31</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: TCP connection to [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span><span style="color: #000000;"> success.
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">31</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Adding service [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.205</span>]:<span style="color: #800080;">80</span> to VS [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>]:<span style="color: #800080;">80</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">21</span> <span style="color: #800080;">01</span>:<span style="color: #800080;">31</span>:<span style="color: #800080;">01</span> bogon Keepalived_healthcheckers[<span style="color: #800080;">6596</span>]: Remote SMTP server [<span style="color: #800080;">192.168</span>.<span style="color: #800080;">200.1</span>]:<span style="color: #800080;">25</span> connected.</pre>
+        </div>
+        <p>恢复后已自动添加进来</p>
+        <p>关掉lvs master的keepalived</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span><span style="color: #000000;">]# service keepalived stop
+        停止 keepalived：                                          [确定]</span></pre>
+        </div>
+        <p>访问web并查看lvs backup</p>
+        <div class="cnblogs_code">
+        <pre>[root@www etc]# curl http:<span style="color: #008000;">//</span><span style="color: #008000;">192.168.2.13/test.txt</span>
+        <span style="color: #000000;">it is web2
+        [root@www etc]# curl http:</span><span style="color: #008000;">//</span><span style="color: #008000;">192.168.2.13/test.txt</span>
+        it is web2</pre>
+        </div>
+        <div class="cnblogs_code">
+        <pre>[root@lys2 src]# <span style="color: #0000ff;">tail</span> -f /var/log/<span style="color: #000000;">messages
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">26</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span><span style="color: #000000;">]: VRRP_Instance(VI_1) Transition to MASTER STATE
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span><span style="color: #000000;">]: VRRP_Instance(VI_1) Entering MASTER STATE
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span><span style="color: #000000;">]: VRRP_Instance(VI_1) setting protocol VIPs.
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_healthcheckers[<span style="color: #800080;">13123</span>]: Netlink reflector reports IP <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;"> added
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: VRRP_Instance(VI_1) Sending/queueing gratuitous ARPs on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">27</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">32</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">32</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: VRRP_Instance(VI_1) Sending/queueing gratuitous ARPs on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">32</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">32</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">32</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span><span style="color: #000000;">
+        Oct </span><span style="color: #800080;">23</span> <span style="color: #800080;">19</span>:<span style="color: #800080;">03</span>:<span style="color: #800080;">32</span> lys2 Keepalived_vrrp[<span style="color: #800080;">13124</span>]: Sending gratuitous ARP on eth1 <span style="color: #0000ff;">for</span> <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span></pre>
+        </div>
+        <div class="cnblogs_code">
+        <pre><span style="color: #000000;">[root@lys2 src]# ip addr
+        </span><span style="color: #800080;">1</span>: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span style="color: #800080;">65536</span><span style="color: #000000;"> qdisc noqueue state UNKNOWN 
+            link</span>/loopback <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span> brd <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span><span style="color: #000000;">
+            inet </span><span style="color: #800080;">127.0</span>.<span style="color: #800080;">0.1</span>/<span style="color: #800080;">8</span><span style="color: #000000;"> scope host lo
+            inet6 ::</span><span style="color: #800080;">1</span>/<span style="color: #800080;">128</span><span style="color: #000000;"> scope host 
+               valid_lft forever preferred_lft forever
+        </span><span style="color: #800080;">2</span>: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span style="color: #800080;">1500</span> qdisc pfifo_fast state UP qlen <span style="color: #800080;">1000</span><span style="color: #000000;">
+            link</span>/ether <span style="color: #800080;">00</span>:0c:<span style="color: #800080;">29</span>:<span style="color: #800080;">89</span><span style="color: #000000;">:0f:e3 brd ff:ff:ff:ff:ff:ff
+            inet </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">144.101</span>/<span style="color: #800080;">24</span> brd <span style="color: #800080;">192.168</span>.<span style="color: #800080;">144.255</span><span style="color: #000000;"> scope global eth0
+            inet6 fe80::20c:29ff:fe89:fe3</span>/<span style="color: #800080;">64</span><span style="color: #000000;"> scope link 
+               valid_lft forever preferred_lft forever
+        </span><span style="color: #800080;">3</span>: eth1: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span style="color: #800080;">1500</span> qdisc pfifo_fast state UP qlen <span style="color: #800080;">1000</span><span style="color: #000000;">
+            link</span>/ether <span style="color: #800080;">00</span>:0c:<span style="color: #800080;">29</span>:<span style="color: #800080;">89</span><span style="color: #000000;">:0f:ed brd ff:ff:ff:ff:ff:ff
+            inet </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.202</span>/<span style="color: #800080;">24</span> brd <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.255</span><span style="color: #000000;"> scope global eth1
+            inet </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.13</span>/<span style="color: #800080;">32</span><span style="color: #000000;"> scope global eth1
+            inet6 fe80::20c:29ff:fe89:fed</span>/<span style="color: #800080;">64</span><span style="color: #000000;"> scope link 
+               valid_lft forever preferred_lft forever</span></pre>
+        </div>
+        <p>&nbsp;</p>
+        <p>可以看到lvs backup已自动切换成master状态并自动绑定了vip</p>
+        <p>查看lvs master vip</p>
+        <div class="cnblogs_code">
+        <pre>[root@bogon keepalived-<span style="color: #800080;">1.2</span>.<span style="color: #800080;">24</span><span style="color: #000000;">]# ip addr
+        </span><span style="color: #800080;">1</span>: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu <span style="color: #800080;">65536</span><span style="color: #000000;"> qdisc noqueue state UNKNOWN 
+            link</span>/loopback <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span> brd <span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span>:<span style="color: #800080;">00</span><span style="color: #000000;">
+            inet </span><span style="color: #800080;">127.0</span>.<span style="color: #800080;">0.1</span>/<span style="color: #800080;">8</span><span style="color: #000000;"> scope host lo
+            inet6 ::</span><span style="color: #800080;">1</span>/<span style="color: #800080;">128</span><span style="color: #000000;"> scope host 
+               valid_lft forever preferred_lft forever
+        </span><span style="color: #800080;">2</span>: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span style="color: #800080;">1500</span> qdisc pfifo_fast state UP qlen <span style="color: #800080;">1000</span><span style="color: #000000;">
+            link</span>/ether <span style="color: #800080;">00</span>:0c:<span style="color: #800080;">29</span>:<span style="color: #800080;">55</span><span style="color: #000000;">:4d:7a brd ff:ff:ff:ff:ff:ff
+            inet </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">12.128</span>/<span style="color: #800080;">24</span> brd <span style="color: #800080;">192.168</span>.<span style="color: #800080;">12.255</span><span style="color: #000000;"> scope global eth0
+            inet6 fe80::20c:29ff:fe55:4d7a</span>/<span style="color: #800080;">64</span><span style="color: #000000;"> scope link 
+               valid_lft forever preferred_lft forever
+        </span><span style="color: #800080;">3</span>: eth1: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu <span style="color: #800080;">1500</span> qdisc pfifo_fast state UP qlen <span style="color: #800080;">1000</span><span style="color: #000000;">
+            link</span>/ether <span style="color: #800080;">00</span>:0c:<span style="color: #800080;">29</span>:<span style="color: #800080;">55</span>:4d:<span style="color: #800080;">84</span><span style="color: #000000;"> brd ff:ff:ff:ff:ff:ff
+            inet </span><span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.203</span>/<span style="color: #800080;">24</span> brd <span style="color: #800080;">192.168</span>.<span style="color: #800080;">2.255</span><span style="color: #000000;"> scope global eth1
+            inet6 fe80::20c:29ff:fe55:4d84</span>/<span style="color: #800080;">64</span><span style="color: #000000;"> scope link 
+               valid_lft forever preferred_lft forever</span></pre>
+        </div>
+        <p>已自动解除vip</p>
+        <p>&nbsp;</p>
+        <p>到此全部结束</p>
+
+</body>
+</html>

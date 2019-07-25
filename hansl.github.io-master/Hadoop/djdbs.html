@@ -1,0 +1,59 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>单节点部署</title>
+<style type="text/css">
+p {text-indent:24px;line-height:10px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:250px;padding:30px 0px 50px 0px;">一单节点部署</h1>
+            <h2>1 创建文件夹，并将数据导入用于测试单节点</h2>
+            <p>并使用Hadoop内部方法完成基本配置。其中output是自动创建的，无需手工创建</p>
+            <p>[hadoop@server1 ~]$ cd hadoop</p>
+            <p>[hadoop@server1 hadoop]$ mkdir input</p>
+            <p>[hadoop@server1 hadoop]$ cp etc/hadoop/*.xml input/</p>
+            <p>[hadoop@server1 hadoop]$ cd input/</p>
+            <p>[hadoop@server1 input]$ ll</p>
+            <p>total 48</p>
+            <p>-rw-r--r-- 1 hadoop hadoop 4942 Dec 30 17:32 capacity-scheduler.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop  774 Dec 30 17:32 core-site.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop 9683 Dec 30 17:32 hadoop-policy.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop  775 Dec 30 17:32 hdfs-site.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop  620 Dec 30 17:32 httpfs-site.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop 3518 Dec 30 17:32 kms-acls.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop 5546 Dec 30 17:32 kms-site.xml</p>
+            <p>-rw-r--r-- 1 hadoop hadoop  690 Dec 30 17:32 yarn-site.xml</p>
+            <p>[hadoop@server1 input]$ cd ..</p>
+            <p>[hadoop@server1 hadoop]$ pwd</p>
+            <p>/home/hadoop/hadoop</p>
+            <p>[hadoop@server1 hadoop]$ bin/hadoop jar share/hadoop/mapreduce-example-2.7.3.jar wordcount input/ output</p>
+        <h2>2 查看其统计结果</h2>
+            <p>[hadoop@server1 hadoop]$ cd output/</p>
+            <p>[hadoop@server1 output]$ ls</p>
+            <p>part-r-00000 _SUCCESS</p>
+            <p>[hadoop@server1 output]$ cat part-r-00000</p>
+            <p>"*"     18</p>
+            <p>"AS     8</p>
+            <p>"License");     8</p>
+            <p>"alice,bob      18</p>
+            <p>"clumping"      1</p>
+            <p>&quot;kerberos&quot;.</p>   
+            <p>&quot;simple&quot;      1</p>
+            <p>'HTTP/' 1</p>
+            <p>'none'  1</p>
+            <p>'random'     1</p>   
+            <p>'sasl'  1</p>
+            <p>'string'        1</p>
+            <p>'zookeeper'     2</p>
+            <p>'zookeeper'.    1</p>
+            <p>(ASF)   1</p>
+            <p>(Kerberos).  1</p>   
+            <p>(default)       1</p>
+            <p style="padding:20px 0px 30px 500px;"><a href="wjdbs.html" >下一篇：伪节点部署</a></p>
+    	</div>
+    </body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>ansible模块使用</title>
+<style type="text/css">
+p {text-indent:24px;line-height:20px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">Ansible创建用户密码</h1>
+         	<h2>[ansible]</h2>
+
+    			
+<p>ansible基于模块提供功能，我们常用到用户管理模块-user，ansible不支持明文密码，所以我们在创建一个用户时，若需要设置密码的话则需要预先把密码变为密文才可以。
+
+步骤：
+<h2>1、安装python-pip，并安装加密函数库-passlib</h2>
+
+<p>[root@localhost ~]# yum -y install python-pip</p>
+<p>[root@localhost ~]# pip install --upgrade pip</p>
+<p>[root@localhost ~]# pip install passlib</p>
+<h2>2、使用加密函数库，获取密文密码</h2>
+
+<p>[root@localhost ~]# python -c "from passlib.hash import sha512_crypt; import getpass; print sha512_crypt.encrypt(getpass.getpass())"</p>
+<p>Password: 输入密码</p>
+<p>$6$ay9zG3B0W54t2tBV$H.LmXhNujzpZNltz7fxUkTbWEQvOgXV4lj6A/0Dpgi0/GQsFWhVzdADjrG/o1IxjBiNP2RzzvSU.BFtaVEDS3/</p>                                   ---获得加密密码
+<h2>3、我们创建一个系统用户，指定用户密码</h2>
+<p style="color:red"><strong>注：加密密码中的特殊符号$需要用反斜杠\转义</strong></p>
+<p>[root@localhost ~]# ansible webservers -m user -a "name=tom state=present comment='this is user tom' system=yes password='\$6\$ay9zG3B0W54t2tBV\$H.LmXhNujzpZNltz7fxUkTbWEQvOgXV4lj6A/0Dpgi0/GQsFWhVzdADjrG/o1IxjBiNP2RzzvSU.BFtaVEDS3/'"</p>
+<h2>4、查看测试</h2>
+<p>我们可以看到被管理主机已创建用户"tom",并且密码为密文已写入"/etc/shadow"用户文件中，尝试用ssh命令使用tom用户登录被管理主机，登录成功！</p>
+
+<p>[root@localhost ~]# ansible webservers -m shell -a "cat /etc/shadow|grep tom"</p>
+<p>192.168.1.50 | SUCCESS | rc=0 >></p>
+<p>tom:$6$ay9zG3B0W54t2tBV$H.LmXhNujzpZNltz7fxUkTbWEQvOgXV4lj6A/0Dpgi0/GQsFWhVzdADjrG/o1IxjBiNP2RzzvSU.BFtaVEDS3/:17707::::::</p>
+<p>[root@localhost ~]# ssh tom@192.168.1.46</p>
+<p>tom@192.168.1.46's password: 输入密码</p>
+<p>Last login: Sun Jun 24 21:13:52 2018 from 192.168.1.22</p>
+<p>[tom@renboyang ~]$ </p>
+        <p style="padding:20px 0px 30px 500px;"><a href="djdbs.html" >......</a></p>
+	</div>
+</body>
+</html>

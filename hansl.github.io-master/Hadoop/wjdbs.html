@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>伪节点部署</title>
+<style type="text/css">
+p {text-indent:24px;line-height:10px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">三伪节点部署</h1>
+        <h2>1 配置文件系统管理相关</h2>
+            <p>[hadoop@server1 ~]$ cd hadoop</p>
+            <p>[hadoop@server1 hadoop]# vim etc/hadoop/core-site.xml</p>
+            <p><img src="3.2.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+
+		<h2>2 配置文件保存的份数</h2>
+			<p>[hadoop@server1 hadoop]# vim etc/hadoop/hdfs-site.xml</p>
+			<p><img src="3.4.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+
+		<h2>3 配置hadoop密码并设置ssh免密认证</h2>
+			<p>[root@server1 ~]# passwd hadoop</p>
+            <p>Changing password for user hadoop.</p>
+            <p>New password:</p>
+            <p>BAD PASSWORD: The password is shorter than 8 characters</p>
+            <p>Retype new password:</p>
+            <p>passwd: all authentication tokens updated successfully.</p>
+            <p><img src="3.6.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+
+        <h2>4 配置datanode节点</h2>
+            <p>[hadoop@server1 ~]$ cat etc/hadoop/slaves</p>
+            <p>192.168.3.10</p>
+        
+        <h2>5 namenode节点格式化</h2>
+            	<p><img src="3.8.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>返回值为0，表示格式化成功</h4>
+            	<p><img src="3.9.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+
+        <h2>6 启动服务并查看进程状态</h2>
+            	<p><img src="3.10.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>测试显示结果</h4>
+            	<p><img src="3.11.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        
+        <h2>7 测试</h2>
+        	<h4>创建目录上传</h4>
+        		<p><img src="3.12.png" height="50px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        	<h4>查看</h4>
+        		<p><img src="3.13.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        		<p><img src="3.14.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        	<h4>上传文件至服务端</h4>
+        		<p><img src="3.15.png" height="50px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+        	<h4>查看</h4>
+        		<p><img src="3.16.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>使用命令查看结果</h4>
+            <h4>删除并查看其显示结果</h4>
+                <p><img src="3.17.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="3.18.png" height="50px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="3.19.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="3.20.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="3.21.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="3.22.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="3.23.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>8 高级配置：mapred配置</h2>
+                <p>[hadoop@server1 ~]$ cd etc/hadoop/</p>
+                <p>[hadoop@server1 hadoop]$ cp mapred-site.xml.template mapred-site.xml</p>
+                <p>[hadoop@server1 ~]$ vim mapred-site.xml</p>
+                <p><img src="3.25.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p>[hadoop@server1 ~]$ vim etc/hadoop/yarn-site.xml</p>
+                <p><img src="3.27.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>9 启动服务并查看</h2>
+            	<p><img src="3.28.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>10 查看是否成功</h2>
+                <p><img src="3.29.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                
+                <p style="padding:20px 0px 30px 500px;"><a href="fbsbs.html" >下一篇：分布式部署</a></p>
+	</div>
+</body>
+</html>

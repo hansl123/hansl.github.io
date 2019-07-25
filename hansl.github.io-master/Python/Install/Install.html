@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Docker进阶</title>
+<style type="text/css">
+p {text-indent:24px;line-height:24px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:900px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:200px;padding:30px 0px 50px 0px;"><a href="http://blog.51cto.com/lizhenliang/2285417" >IT通用技术进阶Docker</a></h1>
+        	<h3>容器是什么</h3>
+                <p>&nbsp;&nbsp;&nbsp;容器技术是一种进程隔离技术
+                <p>&nbsp;&nbsp;&nbsp;应用可以运行在一个个互相隔离的容器中与虚拟机不同的是
+                <p>&nbsp;&nbsp;&nbsp;应用运行时共用着一个Kernel容器技术
+                <p>&nbsp;&nbsp;&nbsp;提升了对系统资源的利用率
+                <p>&nbsp;&nbsp;&nbsp;提高了应用的部署迁移效率
+        		<p><img src="docker.png" height="300px" width="500px" alt="docker" /></p>
+            <h3>Docker是什么</h3>
+            	<p>&nbsp;&nbsp;&nbsp;Docker是一个开源的应用容器引擎，基于Go语言并遵从Apache2.0协议开源。
+                <p>&nbsp;&nbsp;&nbsp;Docker可以让开发者打包他们的应用以及依赖包到一个轻量级/可移植的容器中，然后发布到任何流行的linux机器上，也可以实现虚拟化。
+            <h3>Docker与虚拟化</h3>
+            <p><img src="docker1.png" height="300px" width="700px" alt="docker" /></p>
+            <h3>Docker概念</h3>
+            <h3>Docker工作架构</h3>
+            <h3>Linux &nbsp;&nbsp;&nbsp; Docker安装</h3>
+            <p>配置yum源</p>
+            <p>/etc/yum.repos.d/docker.repo
+            	<p>&nbsp;&nbsp;&nbsp;&nbsp; [ali-epel]
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; baseurl=https://mirrors.aliyun.com/epel/6/x86_64/
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; enabled=1
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; gpgcheck=0
+            <p>安装Docker软件
+            	<p>&nbsp;&nbsp;&nbsp;&nbsp;yum -y install-io
+            <h3>Docker服务管理</h3>
+            	<p>Docker服务查看
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;service &nbsp; docker &nbsp; status   
+                <p>Docker服务启动
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;service &nbsp; docker &nbsp; start
+                <p>Docker服务停止
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;service &nbsp;docker &nbsp; stop
+                <p>Docker服务开机启动
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;chkconfig &nbsp; docker &nbsp; on
+                    
+             <h3>Docker信息查看</h3>    
+             	<li>docker &nbsp; info</li>
+                <li>docker &nbsp; version</li>
+                <li>docker &nbsp; ps &nbsp; [-a]</li>
+                <li>docekr &nbsp; inspect &nbsp; CONTAINER|IMAGE</li>
+                <li>docker &nbsp; history &nbsp; IMAGE</li>
+                
+             <h3>Docker加速器配置</h3>
+                <p>/etc/docker/daemon.json
+                <p>	{ "registry-mirrors":["https://xazu3949.mirror.aliyuncs.com"]}
+                <p>重启docker服务
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;service &nbsp; docker &nbsp; restart
+             <h3>搜索和下载容器</h3>
+                <p>搜索镜像
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;docker &nbsp; search &nbsp; centos
+                <p>下载镜像
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;docker &nbsp; pull &nbsp; centos
+                <p>查看本地镜像
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docker &nbsp; images
+                   
+             <h3>运行dacker容器</h3>
+              	<p>运行docker容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;docker &nbsp; run &nbsp; -i &nbsp; -t &nbsp; -d &nbsp; centos &nbsp; /bin/bash
+                <p>查看运行中的容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;docker &nbsp; ps &nbsp; [-a]
+                <p>进入后台运行的容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;docekr &nbsp; attach &lt;CONTAINER ID&gt;
+             <h3>登陆docker</h3>
+             	<p>登陆Docker
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docekr &nbsp; exec &nbsp; -it &nbsp; &lt;CONTAINER ID&gt;|&lt;NAMES&gt; &nbsp; /bin/bash
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp; exit退出，结束运行
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp; 按ctrl+P+Q退出，后台继续运行
+                <p>SSH登陆
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;如果容器有启动SSH服务，可通过SSH登陆容器
+                    
+             <h3>数据复制</h3>
+             	<p>把容器的文件或目录复制到本机
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp;docker &nbsp; cp &nbsp; 98d01104e30:/www/  &nbsp; /www/
+                <p>把主机文件或目录复制到容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docker &nbsp; run 创建容器时，挂载制定目录
+                    <p>&nbsp;&nbsp;&nbsp;&nbsp; docker &nbsp; run &nbsp; -itd &nbsp; -v &nbsp; /data:/data &nbsp; my/centos &nbsp; /bin/bash
+             <h3>容器启停</h3>
+             	<p>启动容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docekr &nbsp; start &lt;CONTAINER ID&gt;|&lt;NAMES&gt;
+                <p>停止容器
+                	<p>&nbsp;&nbsp; &nbsp;&nbsp;docker &nbsp; stop &lt;CONTAINER ID&gt;|&lt;NAMES&gt;
+                <p>重启容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docker &nbsp; &nbsp;restart &lt;CONTAINER ID&gt;|&lt;NAMES&gt;
+             <h3>构建镜像-从容器构建镜像</h3>
+             	<p>1.运行一个容器
+                <p>2.登陆容器，修改容器内的文件或软件（如安装httpd）
+                <p>3.停止容器
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docker &nbsp; stop
+                  <p>提交容器
+                  	<p>&nbsp;&nbsp;&nbsp;&nbsp; docekr &nbsp; commit &nbsp; -m &nbsp; "my new centos" &nbsp; -a &nbsp; "harry" &nbsp; faca my_centos:V2
+             <h3>构建镜像-使用Dockerfile构建镜像</h3>
+             	<p>1.创建空目录，并新建Dockerfile文件
+                	<p> FROM
+                    <p>	基于哪个镜像
+                    <p> RUN
+                    <p>	安装软件用
+                    <p> MAINTAINER
+                    <p>	镜像创建者
+                <p>2.创建镜像
+                	<p>&nbsp;&nbsp;&nbsp;&nbsp; docker &nbsp; build &nbsp; -t &nbsp; my/centos_nfs:v2 .
+             <h3>Dockerfile实例一</h3>
+             <p>#cat &nbsp; Dockerfile
+             	<p>&nbsp;&nbsp;&nbsp;&nbsp; FROM &nbsp; centos:6
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; MAINTAINER &nbsp; Kent
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; RUN &nbsp; yum &nbsp; -y &nbsp; install &nbsp; httpd
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; WORKDIR &nbsp; /root
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; ADD &nbsp; index.html &nbsp; /var/www/html
+                <p>&nbsp;&nbsp;&nbsp;&nbsp; CMD &nbsp; /etc/init.d/httpd start
+             <h3>Dockerfile实例二</h3>
+                
+                
+                
+                
+                
+                
+                
+                
+                
+  
+                
+                
+                
+			<p style="padding:20px 0px 30px 500px;"><a href="gky.html" >后面更精彩</a></p>
+	</div>
+</body>
+</html>

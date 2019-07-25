@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>ansible模块使用</title>
+<style type="text/css">
+p {text-indent:24px;line-height:20px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:750px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">Ansible常用模块</h1>
+         	<h2>[ansible]</h2>
+
+                    <p>这里主要记录一下常规的ansible命令</p>
+                    
+                    <p>ansible的安装可以使用命令：yum install ansible -y</p>
+       
+                    <p>ansible的配置文件：</p>
+                    
+                    <p>这里默认使用了all作为ansible命令的组，实际使用中，可以自己根据实际需求在文件/etc/ansible/host中添加主机组。
+                    这里要注意的是被控制的主机需要添加ansible服务器的公钥，确保ssh能够没有密码就能够访问被控制的主机。</p>
+     
+                    <p>要使ansible的服务无密码访问被控制的主机还需将ansible主机的公钥加到被控制主机的authorized_key中。</p>
+                    <p>ansible模块有很多，具体模块的使用方法可以使用 ansible-doc 命令可以详细的查看</p>
+                    <p>例如：[root@server1 ~]# ansible-doc service  # 查看模块 service 的使用方法</p>
+ 
+            <h2>ansible命令通常由以下格式组成：</h2>
+                
+                    <p>ansible &ltansible.client&gt -m &ltmodule&gt -a &ltargs&gt </p>
+                    
+                    <p>其中&ltansible.client&gt可以是配置文件中的服务器组名，ip，域名等一切能表达主机的名称。 </p>
+    
+                    <p>&ltargs&gt </p>
+                    
+                    <p>[-k]                     //每次都要询问密码</p>
+                    
+                    <p>[-u &ltusername&gt] [--sudo] //以&ltusername&gt的身份运行，再加--sudo获取root权限 </p>
+    
+                    <p>-m的&ltmodule&gt: </p>
+ 
+                <h2>command模块:</h2>
+                	<p>chdir：在运行命令之前，切换到此目录。</p>
+                    <p>ansible &ltansible.client&gt -m command -a "&ltcommand&gt" </p>
+                    
+                    <p>//远程发送命令
+                    <p><img src="use/1.png" height="100px" width="700px" alt="command" /></p>
+                    
+                <h2>template模块:</h2>
+                	<p>ansible &ltansible.client&gt -m template -a "src=&lt/path/to/localfile&gt dest=&lt/path/to/remotefile&gt"</p>
+                    <p>backup： 如果原目标文件存在，则先备份目标文件</p> 
+                    <p>src：在ansible控制器上的Jinja2格式化模板的路径。 这可以是相对或绝对的路径。</p> 
+                    <p>dest：将模板渲染到远程机器上的位置。</p>
+                    <p>owner：目标文件属主</p> 
+					<p>group：目标文件属组 </p>
+                    <p>force:是否强制覆盖yes</p>
+                    <p>mode:目标文件的权限模式，模式可以被指定为符号模式（例如，u + rwx或u = rw，g = r，o = r）。</p>
+					<p><img src="use/16.png" height="300px" width="700px" alt="copy" /></p>
+                <h2>copy模块:</h2>
+                    <p>src：要复制到远程主机的文件在本地的地址，可以是绝对路径，也可以是相对路径。如果路径是一个目录，它将递归复制。在这种情况下，如果路径使用”/”来结尾，则只复制目录里的内容，如果没有使用”/”来结尾，则包含目录在内的整个内容全部复制，类似于rsync。</p> 
+                    <p>content：用于替代”src”,可以直接设定指定文件的值 </p>
+                    <p>dest：必选项。要将源文件复制到的远程主机的绝对路径，如果源文件是一个目录，那么该路径也必须是个目录</p> 
+                    <p>directory_mode：递归的设定目录的权限，默认为系统默认权限 </p>
+                    <p>force：如果目标主机包含该文件，但内容不同，如果设置为yes，则强制覆盖，如果为no，则只有当目标主机的目标位置不存在该文件时，才复制。默认为yes</p> 
+                
+                	<p>ansible &ltansible.client&gt -m copy -a "src=&lt/path/to/localfile&gt dest=&lt/path/to/remotefile&gt" </p>
+                
+                <p>//远程传文件
+                	<p><img src="use/2.png" height="300px" width="700px" alt="copy" /></p>
+                
+                <h2>fetch模块:</h2>
+                	<p>它用于从远程机器获取文件，并将其本地存储在由主机名组织的文件树中。</p> 
+                    <p>src：远程系统上要获取的文件。 这必须是一个文件，而不是一个目录。 后续版本可能会支持递归提取。</p> 
+                    <p>dest：保存文件的目录。 例如，如果dest目录是/backup，在主机host.example.com上命名为/ etc/profile的src文件将被保存到                     /backup/host.example.com/etc/profile。 </p>
+                    <p>flat：允许您覆盖将目标文件添加到主机名/ path / to / file的默认行为。</p>
+
+                    <p>ansible &ltansible.client&gt -m fetch -a "src=&lt/path/to/localfile&gt dest=&lt/path/to/remotefile&gt" </p>
+                    <p>//远程文件复制到本地</p>
+                    <p><img src="use/14.png" height="200px" width="700px" alt="copy" /></p>
+                
+                <h2>replace模块:</h2>
+                    <p>ansible &ltansible.client&gt -m replace -a "dest=&lt/path/to/remotefile&gt regexp='Old' replace='New' backeup=yes"</p>
+                    <p><img src="use/15.png" height="150px" width="700px" alt="copy" /></p>
+
+               <h2> file模块:</h2>
+                	<p>file模块主要用于远程主机上的文件操作，file模块包含如下选项：</p> 
+                    <p>force：需要在两种情况下强制创建软链接，一种是源文件不存在但之后会建立的情况下；另一种是目标软链接已存在,需要先取消之前的软链，然后创                    建新的软链，有两个选项：yes|no</p> 
+                    <p>group：定义文件/目录的属组 </p>
+                    <p>mode：定义文件/目录的权限 </p>
+                    <p>owner：定义文件/目录的属主</p> 
+                    <p>path：必选项，定义文件/目录的路径</p> 
+                    <p>recurse：递归的设置文件的属性，只对目录有效</p> 
+                    <p>src：要被链接的源文件的路径，只应用于state=link的情况</p> 
+                    <p>dest：被链接到的路径，只应用于state=link的情况 </p>
+                    <p>state： </p>
+                    <p>   directory：如果目录不存在，创建目录</p> 
+                    <p>   file：即使文件不存在，也不会被创建</p> 
+                    <p>   link：创建软链接 </p>
+                    <p>   hard：创建硬链接 </p>
+                    <p>   touch：如果文件不存在，则会创建一个新的文件，如果文件或目录已存在，则更新其最后修改时间</p> 
+                    <p>   absent：删除目录、文件或者取消链接文件</p>
+
+                    <p>ansible &ltansible.client&gt -m file -a "dest=&lt/path/to/remotefile&gt mode=&ltchmod.mun&gt [owner=&ltusername&gt] [group=                    &ltgroup&gt]" </p>
+                    
+                    <p>//远程创建文件，可以设置文件的权限与用户名</p>
+                    
+                    <p>//第一次生成文件要state=touch</p>
+                    <p><img src="use/3.png" height="250px" width="700px" alt="file" /></p>
+                
+                
+                
+                    <p>ansible &ltansible.client&gt -m file -a "dest=&lt/path/to/remotedir&gt mode=&ltchmod.num&gt state=directory" </p>
+                    
+                    <p>//远程创建文件夹</p>
+                    
+                    <p><img src="use/4.png" height="250px" width="700px" alt="file" /></p>
+                    
+                    <p>ansible &ltansible.client&gt -m file -a "dest=&lt/path/to/remotefile&gt state=absent" </p>
+                    
+                    <p>//远程删除文件</p>
+                    <p><img src="use/5.png" height="130px" width="700px" alt="file" /></p>
+
+                <h2>ping模块:</h2>
+                
+                    <p>ansible &ltansible.client&gt -m ping</>
+                    
+                    <p>//ping所有&ltansible.client&gt的主机，查看ansible服务器和被控制主机的网络是否通。
+                    <p><img src="use/6.png" height="100px" width="700px" alt="ping" /></p>
+   
+                <h2>service模块:</h2>
+                	<p>用于管理服务，记得针对Centos7就不要使用这个模块了。 </p>
+                    <p>arguments：给命令行提供一些选项 </p>
+                    <p>enabled：是否开机启动 yes|no, 要求状态（state）和启用（enabled）中至少有一个。</p> 
+                    <p>name：必选项，服务名称 </p>
+                    <p>runlevel：运行级别 </p>
+                    <p>sleep：如果执行了restarted，在则stop和start之间沉睡几秒钟</p> 
+                    <p>state：对当前服务执行启动，停止、重启、重新加载等操作（started,stopped,restarted,reloaded）</p>
+
+                
+                    <p>ansible &ltansible.client&gt -m service -a "name=&ltservice.name&gt state={started|restarted|stoped}"</p>
+                    
+                    <p>//修改服务的状态</p>
+                    <p><img src="use/7.png" height="200px" width="700px" alt="ping" /></p>
+                    <p><img src="use/8.png" height="200px" width="700px" alt="ping" /></p>
+
+                <h2>shell模块:</h2>
+                    <p>chdir：在运行命令之前，切换到此目录。</p> 
+                    <p>executable：更改用于执行命令的shell（bash，sh）。 应该是可执行文件的绝对路径。</p>
+                    <p>ansible &ltansible.client&gt -m shell -a '&ltcommand&gt' </p>
+                    
+                    <p>//向远程主机发送命令</p>
+                    <p><img src="use/9.png" height="200px" width="700px" alt="ping" /></p>
+
+                <h2>user模块:</h2>
+                	<p>home：指定用户的家目录，需要与createhome配合使用。</p> 
+                    <p>groups：指定用户的属组。 </p>
+                    <p>uid：指定用的uid。 </p>
+                    <p>password：指定用户的密码。</p>  
+                    <p>name：指定用户名。 </p>
+                    <p>createhome：是否创建家目录 yes|no。</p> 
+                    <p>system：是否为系统用户。 </p>
+                    <p>remove：当state=absent时，remove=yes则表示连同家目录一起删除，等价于userdel -r。</p> 
+                    <p>state：是创建还是删除。（present，absent） </p>
+                    <p>shell：指定用户的shell环境。 </p>
+                    <p>generate_ssh_key：是否为相关用户生成SSH密钥。 这不会覆盖现有的SSH密钥。</p> 
+                    <p>ssh_key_bits：可选择指定要创建的SSH密钥中的位数。 </p>
+                    <p>ssh_key_passphrase：设置SSH密钥的密码。 如果没有提供密码，SSH密钥将默认没有密码。</p> 
+                    <p>ssh_key_file：指定SSH密钥文件名（可选）。 如果这是一个相对的文件名，那么它将是相对于用户的主目录。</p> 
+                    <p>ssh_key_type：指定要生成的SSH密钥的类型（可选）。 可用的SSH密钥类型将取决于目标主机上的实现。</p>
+
+                
+                    <p>ansible &ltansible.client&gt -m user -a "name=&ltusername&gt [passwd=&ltcrypted.passwd&gt]" </p>
+                    
+                    <p>//添加一个用户</p>
+                    <p style="color:red"><strong>此处的密码创建无效，详情请查看<a href="passwd.html" >ansible用户创建及密码</a></strong></p>
+                    <p><img src="use/11.png" height="300px" width="700px" alt="user" /></p>
+                    
+                    <p>根据实际情况，密码这个项最好是先在一台主机上建一个密码，然后在/etc/shadow里提取。而且某些系统中密码是包含特殊字符$，所以密码要用单												                       引号扩起来而$前要用\符号转译。 </p>
+                <h2>group模块</h2>
+                    <p>gid：指定用的gid。</p> 
+                    <p>name：指定用户名。</p> 
+                    <p>state：是创建还是删除。（present，absent）</p> 
+                    <p>system：如果是，则表示创建的组是系统组。</p>
+					<p><img src="use/17.png" height="150px" width="700px" alt="user" /></p>
+                    
+                 <h2>get_url 模块:</h2>   
+                    <p>该模块主要用于从http、ftp、https服务器上下载文件（类似于wget），主要有如下选项： </p>
+                    <p>sha256sum：下载完成后进行sha256 check； </p>
+                    <p>timeout：下载超时时间，默认10s </p>
+                    <p>url：下载的URL </p>
+                    <p>url_password、url_username：主要用于需要用户名密码进行验证的情况 </p>
+                    <p>dest：将文件下载到哪里的绝对路径。如果dest是目录，则使用服务器提供的文件名，或者如果没有提供，将使用远程服务器上的URL的基本名称。</p> 
+                    <p>headers：以格式“key：value，key：value”为请求添加自定义HTTP标头。</p>
+                  
+                <h2>yum模块:</h2>
+                	<p>这个模块是RedHat / CentOS作为远端节点的OS的时候，用的最多的。Yum是啥就不多说了，RedHat / CentOS包管理工具 
+                    使用`yum’软件包管理器管理软件包，其选项有：</p> 
+                    <p>config_file：yum的配置文件 （optional）</p> 
+                    <p>disable_gpg_check：关闭gpg_check （optional）</p> 
+                    <p>disablerepo：不启用某个源 （optional） </p>
+                    <p>enablerepo：启用某个源（optional） </p>
+                    <p>name：要进行操作的软件包的名字，默认最新的程序包，指明要安装的程序包，可以带上版本号，也可以传递一个url或者一个本地的rpm包的路径</p> 
+                    <p>state：状态（present，absent，latest），表示是安装还卸载 </p>
+                    <p>   present:默认的，表示为安装 </p>
+                    <p>   lastest: 安装为最新的版本 </p>
+                    <p>   absent：表示删除</p>
+
+                
+                    <p>ansible &ltansible.client&gt -m yum -a "name=&ltsoftware.name&gt state=present" </p>
+                    
+                    <p>//直接安装指定软件，如果已安装则查看版本信息。</p>
+                    <p><img src="use/10.png" height="300px" width="700px" alt="user" /></p>
+                    <p><img src="use/12.png" height="300px" width="700px" alt="user" /></p>
+                    <p><img src="use/13.png" height="400px" width="700px" alt="user" /></p>
+                <h2>unarchive模块</h2>
+                    <p>用于解压文件，模块包含如下选项：</p> 
+                    <p>copy：在解压文件之前，是否先将文件复制到远程主机，默认为yes。若为no，则要求目标主机上压缩包必须存在。 </p>
+                    <p>creates：指定一个文件名，当该文件存在时，则解压指令不执行 </p>
+                    <p>dest：远程主机上的一个路径，即文件解压的绝对路径。 </p>
+                    <p>group：解压后的目录或文件的属组 </p>
+                    <p>list_files：如果为yes，则会列出压缩包里的文件，默认为no，2.0版本新增的选项</p> 
+                    <p>mode：解压后文件的权限 </p>
+                    <p>src：如果copy为yes，则需要指定压缩文件的源路径 </p>
+                    <p>owner：解压后文件或目录的属主</p>
+                <h2>unarchive模块</h2>
+                    <p>setup模块，主要用于获取主机信息，在playbooks里经常会用到的一个参数gather_facts就与该模块相关。</p>
+                    <p>setup模块下经常使用的一个参数是filter参数，具体使用示例如下（由于输出结果较多，这里只列命令不写结果）：</p>
+                    <p>//查看主机内存</p>
+                    <p>[root@361way ~]# ansible 10.212.52.252 -m setup -a 'filter=ansible_*_mb'  </p>
+                    <p>//查看地接口为eth0-2的网卡信息</p>
+                    <p>[root@361way ~]# ansible 10.212.52.252 -m setup -a 'filter=ansible_eth[0-2]'   </p>
+                    <p>//将所有主机的信息输入到/tmp/facts目录下，每台主机的信息输入到主机名文件中（/etc/ansible/hosts里的主机名）</p>
+                    <p>[root@361way ~]# ansible all -m setup --tree /tmp/facts   </p>
+                                    
+        			<p style="padding:20px 0px 30px 500px;"><a href="djdbs.html" >后面更精彩</a></p>
+	</div>
+</body>
+</html>

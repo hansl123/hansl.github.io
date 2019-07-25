@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>升级Docker服务</title>
+<style type="text/css">
+p {text-indent:24px;line-height:24px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:900px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;"><a href="http://blog.51cto.com/lizhenliang/2285417" >升级Docker服务</a></h1>
+        <h2>升级Docker服务</h2>
+        	
+            
+            
+            <h3>1、卸载低版本的docker</h3>
+            
+            <p># yum remove docker docker-client docker-client-latest  \
+            <p> docker-common  docker-latest docker-latest-logrotate   \
+             <p>docker-logrotate docker-selinux  docker-engine-selinux  docker-engine
+            <h3>2、下载安装最新版本的docker （社区发行版，当前最新版为18.03）</h3>
+            
+            <p># wget  \
+            <p>https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-18.03.0.ce-1.el7.centos.x86_64.rpm
+            
+            <p># yum -y localinstall docker-ce-18.03.0.ce-1.el7.centos.x86_64.rpm 
+            <h3>3、修改docker启动服务，和前面配置的flannel服务绑定（通过$DOCKER_NETWORK_OPTIONS）</h3>
+            
+            <p># mkdir -p  /etc/systemd/system/docker.service.d/
+            <p># cat /etc/systemd/system/docker.service.d/override.conf 
+            <p>[Service]
+            <p>ExecStart=
+            <p>ExecStart=/usr/bin/dockerd  --graph=/home/docker -H 0.0.0.0:2375 -H unix:///var/run/docker.sock  $DOCKER_NETWORK_OPTIONS
+            <h3>4、配置镜像下载加速</h3>
+            
+           <p> # cat /etc/docker/daemon.json
+            <p>{"registry-mirrors": ["https://pee6w651.mirror.aliyuncs.com"],
+             <p>   "live-restore": false
+            <p>}
+            <h3>5、启动测试</h3>
+            
+            <p># systemctl daemon-reload</p>
+            <p># service docker start</p>
+            <p># service docker status</p>
+            <p><img src="update/1.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <p>可以看到drop-in里面有引用flannel.conf配置文件
+            
+            <h3>6、导入pause镜像</h3>
+            
+            <p># docker ps
+            <p># cd /home/docker/
+            <p># ls
+            <p># du -sh
+            <p># docker load < pause-amd64_3.0.tar 
+            <p># docker images
+            <p><img src="update/2.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h3>7、查看docker版本信息</h3>
+            
+            <p># docker info
+            <p># systemctl enable docker
+            <p><img src="update/3.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <p>可以根据实际需要修改docker的storage driver类型，推荐使用overlay2，相关信息可参考如下文档：
+            <p>https://www.cnblogs.com/hahp/p/6519786.html
+            <p>http://dockone.io/article/1513
+        	
+            
+
+			<p style="padding:20px 0px 30px 500px;"><a href="gky.html" >下一篇：高可用</a></p>
+	</div>
+</body>
+</html>

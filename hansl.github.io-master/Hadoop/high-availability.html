@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>高可用</title>
+<style type="text/css">
+p {text-indent:34px;line-height:26px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:800px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">七 高可用</h1>
+            <h3>简介：</h3>
+            	<p>在典型的HA集群中，通常有两台不同的机器充当NN（namenode),在任何时间，只有一台机器处于active状态，另一						台机器则处于standby状态，active NN负责集群中所有客户端的操作，而standby NN主要用于备用，主要维持足够的状态，如果有必要，可以
+                提供快速的故障恢复</p>
+            
+            <p>为了让standby NN状态和 active NN 保持同步，及元数据保持一致，他会都会和journalnodes 守护进程通信，当active NN 执行任何有关命名空间的修改，他都需要持久化到一半以上的journalnodes 上（通过edits log 持久化存储），而standby NN负责观察edits log 的变化，他能够从JNS 中读取edits 信息，并更新其内部的名称空间，一旦active NN 出现故障，standby NN 会将保证从JNS中读取了全部edits，然后切换成active 状态，standby NN读取全部的edits 可确保发生故障转移之前，是和active NN拥有完全同步的命名空间状态</p>
+            
+            <p>为了提供快速的故障恢复，standby NN也需要保存集群中各个文件块的存储位置，为了实现这个，集群中的所有Datanode 将配置好的active NN和standby NN的位置，并向他们发送快文件所在的位置及心跳。</p>
+            <p>为了部署HA 集群，你需要准备以下事项：</p>
+            <p>（1）、NameNode machines：运行Active NN 和Standby NN 的机器需要相同的硬件配置；</p>
+            <p>（2）、JournalNode machines：也就是运行JN 的机器。JN 守护进程相对来说比较轻量，所以这些守护进程可以可其他守护线程（比如NN，YARN ResourceManager）运行在同一台机器上。在一个集群中，最少要运行3 个JN 守护进程，这将使得系统有一定的容错能力。当然，你也可以运行3 个以上的JN，但是为了增加系统的容错能力，你应该运行奇数个JN（3、5、7 等），当运行N 个JN，系统将最多容忍(N-1)/2 个JN 崩溃。在HA 集群中，Standby NN 也执行namespace 状态的checkpoints，所以不必要运行Secondary NN、CheckpointNode 和BackupNode；事实上，运行这些守护进程是错误的。</p>
+            
+            <h2>1 DHFS 高可用</h2>
+            <h3>1 关闭之前的服务</h3>
+            
+            	<p><img src="7.1.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>2 查看各节点配置</h2>
+                <p><img src="7.2.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.3.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.4.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>3 配置服务
+                <p>[root@hadoop ~]# vim etc/hadoop/hdfs-site.xml</p>
+                <p><img src="7.5.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>4 删除原有配置
+            <p>[root@hadoop ~]# rm -rf etc/hadoop/host-exclude</p>
+            
+            <h2>5 清空原有配置，以防影响
+            <p><img src="7.6.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.7.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.8.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.9.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.10.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>6 配置安装服务zookeeper
+            <h2>zookeeper 至少为三台，总结点数为奇数个
+                <p><img src="7.11.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.12.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.13.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.14.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.15.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.16.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.17.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>7 启动服务
+                <p><img src="7.18.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.20.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.19.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                
+            <h2>8 查看那个是leader
+                <p><img src="7.21.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.22.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.23.png" height="150px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>9 在leader 上启动服务并查看相关配置
+                <p><img src="7.24.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.25.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>10 配置集群相关配置
+            <h2>1 配置指定hdfs的namenode 为master(名称随意)指定zookeeper 集群主机地址(server2,server3,server4的IP地址)
+            <p>vim etc/hadoop/core-site.xml
+            <p><img src="7.26.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>2 编辑hdfs-site.xml文件
+            vim etc/hadoop/hdfs-site.xml
+            
+            <h4>A 指定hdfs的nameservices 为master</h4>
+            <p><img src="7.27.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>B 定义namenode节点（server1 server5 ）</h4>
+            <p><img src="7.28.png" height="300px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>C 指定namenode 元数据在journalNode上的存放位置</h4>
+            <p><img src="7.29.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>D指定journalnode在本地磁盘存放数据的位置</h4>
+            <p><img src="7.30.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>E 开启namenode 失败自动切换，及自动切换实现方式，隔离机制方式以及使用sshfence 隔离机制需要ssh免密以及隔离机制超时时间等参数</h4>
+            <p><img src="7.31.png" height="400px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>11 配置server5进行挂载</h2>
+            
+            <p>yum -y install rpcbind nfs-utils</p>
+                <p><img src="7.32.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.33.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>12 启动日志服务器server2 server3 server4
+                <p><img src="7.34.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.35.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.36.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                
+            <h2>13 格式化namenode
+            	<p><img src="7.37.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            	<p><img src="7.38.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>14 将生成的数据发送到另一个高可用节点
+            	<p><img src="7.39.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>15 配置免密认证
+            	<p><img src="7.40.png" height="500px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>16 启动zkfc服务
+            <p><img src="7.41.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>17 查看服务
+            <p><img src="7.42.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.43.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.44.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.45.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.46.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.47.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>18 验证高可用，关闭服务
+            <p><img src="7.48.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.49.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.50.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.51.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.52.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            2 高可用之 YARN
+            vim etc/hadoop/mapred-site.xml
+            
+            
+            1 指定yarn的框架为mapreduce
+            <p><img src="7.53.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            vim etc/hadoop/yarn-site.xml
+            
+            
+            2 配置可以在nodemanager上运行mapreduce程序
+            <p><img src="7.54.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>3 激活RM高可用
+            <p><img src="7.55.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>4 指定RM的集群ID
+            <p><img src="7.56.png" height="100px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>5 定义RM节点
+            <p><img src="7.57.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.58.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>6激活RM 自动恢复
+            <p><img src="7.59.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>7 配置RM状态信息存储方式，有memstore和ZKstore
+            <p><img src="7.60.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>8 配置为zookeeper 存储时，指定ziikeeper集群的地址
+            <p><img src="7.61.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>9启动yarn 服务并查看
+            <p><img src="7.62.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>10 另一个节点需要手工启动服务</h2>
+            	<p><img src="7.63.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>11 查看集群状态</h2>
+            
+            <p><img src="7.64.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.65.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <p><img src="7.66.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h2>12 测试</h2>
+            <h4>断开主节点查看情况</h4>
+            <p><img src="7.67.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>则切换到server5上</h4>
+            <p><img src="7.68.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>查看server5 状态</h4>
+            <p><img src="7.69.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>启动server1</h4>
+            <p><img src="7.70.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            <h4>查看server1状态</h4>
+            <p><img src="7.71.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+            
+            <h2>13 服务的关闭方式</h2>
+                <p><img src="7.72.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.73.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.74.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.75.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p><img src="7.76.png" height="200px" width="700px" alt="上海鲜花港 - 郁金香" /></p>
+                <p style="padding:20px 0px 30px 500px;"><a href="../index.html" >回到首页</a></p>
+</div>
+</body>
+</html>

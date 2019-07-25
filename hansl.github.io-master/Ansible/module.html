@@ -1,0 +1,41 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>环境搭建</title>
+<style type="text/css">
+p {text-indent:24px;line-height:24px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">Ansible常用模块</h1>
+         <p>ansible 默认提供了很多模块来供我们使用。在 Linux 中，我们可以通过 ansible-doc -l 命令查看到当前 ansible 都支持哪些模块，通过 ansible-doc  -s  模块名  又可以查看该模块有哪些参数可以使用。</p>
+
+       		<h4>下面介绍比较常用的几个模块：</h4>
+
+                <p>copy模块</p>
+                <p>file模块</p>
+                <p>cron模块</p>
+                <p>group模块</p>
+                <p>user模块</p>
+                <p>yum模块</p>
+                <p>service模块</p>
+                <p>script模块</p>
+                <p>ping模块</p>
+                <p>command模块</p>
+                <p>raw模块</p>
+                <p>get_url模块</p>
+                <p>synchronize模块</p>
+            <h4>copy模块：</h4>
+                
+                <p>目的：把主控端/root目录下的a.sh文件拷贝到到指定节点上</p>
+                
+                <p>命令：ansible 10.1.1.113 -m copy -a 'src=/root/a.sh dest=/tmp/'</p>
+                
+                <p>执行效果：</p>
+        <p style="padding:20px 0px 30px 500px;"><a href="djdbs.html" >......</a></p>
+	</div>
+</body>
+</html>

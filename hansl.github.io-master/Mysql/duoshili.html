@@ -1,0 +1,239 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="referrer" content="origin" />
+<title>linux下mysql多实例安装 - xuchenliang123 - 博客园</title>
+
+</head>
+<body>
+
+
+
+	
+		<h1 class = "postTitle">
+			<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/xuchenliang/p/6843990.html">linux下mysql多实例安装</a>
+		</h1>
+		
+		
+			<div id="cnblogs_post_body" class="blogpost-body"><div><strong>1.MySQL多实例介绍</strong></div>
+<div><strong>1.1.什么是MySQL多实例</strong></div>
+<div>MySQL多实例就是在一台机器上开启多个不同的服务端口（如：3306,3307），运行多个MySQL服务进程，通过不同的socket监听不同的服务端口来提供各自的服务:；</div>
+<div><strong>1.2.MySQL多实例的特点有以下几点</strong></div>
+<div>1：有效利用服务器资源，当单个服务器资源有剩余时，可以充分利用剩余的资源提供更多的服务。</div>
+<div>2：节约服务器资源</div>
+<div>3：资源互相抢占问题，当某个服务实例服务并发很高时或者开启慢查询时，会消耗更多的内存、CPU、磁盘IO资源，导致服务器上的其他实例提供服务的质量下降；</div>
+<div><strong>1.3.部署mysql多实例的两种方式</strong></div>
+<div>第一种是使用多个配置文件启动不同的进程来实现多实例，这种方式的优势逻辑简单，配置简单，缺点是管理起来不太方便；</div>
+<div>第二种是通过官方自带的mysqld_multi使用单独的配置文件来实现多实例，这种方式定制每个实例的配置不太方面，优点是管理起来很方便，集中管理；</div>
+<div><strong>1.4.同一开发环境下安装两个数据库，必须处理以下问题</strong></div>
+<ul>
+<li>配置文件安装路径不能相同</li>
+<li>数据库目录不能相同</li>
+<li>启动脚本不能同名</li>
+<li>端口不能相同</li>
+<li>socket文件的生成路径不能相同</li>
+</ul>
+<div><strong>2.Mysql多实例安装部署</strong></div>
+<div><strong>2.1.部署环境</strong></div>
+<div>Red Hat Enterprise Linux Server release 6.4</div>
+<div><strong>2.2.安装mysql软件版本</strong></div>
+<div><strong>2.2.1.免编译二进制包</strong></div>
+<div>mysql-5.6.21-linux-glibc2.5-x86_64.tar.gz</div>
+<div><strong>2.3.解压和迁移</strong></div>
+<div>tar -xvf mysql-5.6.21-linux-glibc2.5-x86_64.tar.gz</div>
+<div>mv mysql-5.6.21-linux-glibc2.5-x86_64 /usr/local/mysql</div>
+<div><strong>2.4.关闭iptables</strong></div>
+<div>临时关闭：service iptables stop&nbsp;</div>
+<div>永久关闭：chkconfig iptables off</div>
+<div><strong>2.5.关闭selinux</strong></div>
+<div>vi /etc/sysconfig/selinux&nbsp;&nbsp;</div>
+<div>将SELINUX修改为DISABLED，即SELINUX=DISABLED&nbsp;</div>
+<div><strong>2.6.创建mysql用户</strong></div>
+<div>groupadd -g 27 mysql</div>
+<div>useradd -u 27 -g mysql mysql</div>
+<div>id mysql</div>
+<div>uid=501(mysql) gid=501(mysql) groups=501(mysql)</div>
+<div><strong>2.7.创建相关目录</strong></div>
+<div>mkdir -p /data/mysql/ {mysql_3306,mysql_3307}</div>
+<div>mkdir /data/mysql/mysql_3306/ {data,log,tmp}</div>
+<div>mkdir /data/mysql/mysql_3307/ {data,log,tmp}</div>
+<div><strong>2.8.更改目录权限</strong></div>
+<div>chown -R mysql:mysql /data/mysql/&nbsp;</div>
+<div>chown -R mysql:mysql /usr/local/mysql/</div>
+<div><strong>2.9. 添加环境变量</strong></div>
+<div>echo 'export PATH=$PATH:/usr/local/mysql/bin' &gt;&gt;&nbsp; /etc/profile&nbsp;</div>
+<div>source /etc/profile&nbsp;&nbsp;</div>
+<div><strong>2.10.复制my.cnf文件到etc目录</strong></div>
+<div>cp /usr/local/mysql/support-files/my-default.cnf /etc/my.cnf</div>
+<div><strong>2.11.修改my.cnf（在一个文件中修改即可）</strong></div>
+<div>[client]&nbsp;&nbsp;</div>
+<div>port=3306&nbsp;&nbsp;</div>
+<div>socket=/tmp/mysql.sock&nbsp;&nbsp;</div>
+<div>&nbsp;</div>
+<div>[mysqld_multi]&nbsp;&nbsp;</div>
+<div>mysqld = /usr/local/mysql /bin/mysqld_safe&nbsp;&nbsp;</div>
+<div>mysqladmin = /usr/local/mysql /bin/mysqladmin&nbsp;&nbsp;</div>
+<div>log = /data/mysql/mysqld_multi.log&nbsp;&nbsp;</div>
+<div>&nbsp;</div>
+<div>[mysqld]&nbsp;&nbsp;</div>
+<div>user=mysql&nbsp;&nbsp;</div>
+<div>basedir = /usr/local/mysql&nbsp;&nbsp;</div>
+<div>sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES&nbsp;&nbsp;</div>
+<div>&nbsp;</div>
+<div>[mysqld3306]&nbsp;&nbsp;</div>
+<div>mysqld=mysqld&nbsp;&nbsp;</div>
+<div>mysqladmin=mysqladmin&nbsp;&nbsp;</div>
+<div>datadir=/data/mysql/mysql_3306/data&nbsp;&nbsp;</div>
+<div>port=3306&nbsp;&nbsp;</div>
+<div>server_id=3306&nbsp;&nbsp;</div>
+<div>socket=/tmp/mysql_3306.sock&nbsp;&nbsp;</div>
+<div>log-output=file&nbsp;&nbsp;</div>
+<div>slow_query_log = 1&nbsp;&nbsp;</div>
+<div>long_query_time = 1&nbsp;&nbsp;</div>
+<div>slow_query_log_file = /data/mysql/mysql_3306/log/slow.log&nbsp;&nbsp;</div>
+<div>log-error = /data/mysql/mysql_3306/log/error.log&nbsp;&nbsp;</div>
+<div>binlog_format = mixed&nbsp;&nbsp;</div>
+<div>log-bin = /data/mysql/mysql_3306/log/mysql3306_bin&nbsp;&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;</div>
+<div>[mysqld3307]&nbsp;&nbsp;</div>
+<div>mysqld=mysqld&nbsp;&nbsp;</div>
+<div>mysqladmin=mysqladmin&nbsp;&nbsp;</div>
+<div>datadir=/data/mysql/mysql_3307/data&nbsp;&nbsp;</div>
+<div>port=3307&nbsp;&nbsp;</div>
+<div>server_id=3307&nbsp;&nbsp;</div>
+<div>socket=/tmp/mysql_3307.sock&nbsp;&nbsp;</div>
+<div>log-output=file&nbsp;&nbsp;</div>
+<div>slow_query_log = 1&nbsp;&nbsp;</div>
+<div>long_query_time = 1&nbsp;&nbsp;</div>
+<div>slow_query_log_file = /data/mysql/mysql_3307/log/slow.log&nbsp;&nbsp;</div>
+<div>log-error = /data/mysql/mysql_3307/log/error.log&nbsp;&nbsp;</div>
+<div>binlog_format = mixed&nbsp;&nbsp;</div>
+<div>log-bin = /data/mysql/mysql_3307/log/mysql3307_bin</div>
+<div><strong>2.12. 初始化数据库</strong></div>
+<div><strong>2.12.1. 初始化3306数据库&nbsp;</strong></div>
+<div>/usr/local/mysql/scripts/mysql_install_db --basedir=/usr/local/mysql/ --datadir=/data/mysql/mysql_3306/data --defaults-file=/etc/my.cnf&nbsp;&nbsp;</div>
+<div><strong>2.12.2. 初始化3307数据库&nbsp;</strong></div>
+<div>/usr/local/mysql/scripts/mysql_install_db --basedir=/usr/local/mysql/ --datadir=/data/mysql/mysql_3307/data --defaults-file=/etc/my.cnf&nbsp;&nbsp;</div>
+<div><strong>2.12.3. 检查数据库是否初始化成功</strong></div>
+<div>出现两个”OK”</div>
+<div>&nbsp;<img src="http://img.blog.csdn.net/20170511185926903?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveHVjaGVubGlhbmc1NzM=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt="">
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+</div>
+<div><img src="http://img.blog.csdn.net/20170511190104885?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveHVjaGVubGlhbmc1NzM=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt=""><br>
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;
+<div>&nbsp;</div>
+
+
+</div>
+<div><strong>2.12.4. 查看数据库是否初始化成功（2）</strong></div>
+<div>查看3306数据库</div>
+<div>[root@mysql ~]# cd /data/mysql/mysql_3306/data</div>
+<div>[root@mysql data]# ls</div>
+<div>auto.cnf&nbsp; ibdata1&nbsp; ib_logfile0&nbsp; ib_logfile1&nbsp; mysql&nbsp; mysql.pid&nbsp; performance_schema&nbsp; test</div>
+<div>&nbsp;</div>
+<div>查看3307数据库</div>
+<div>[root@mysql ~]# cd /data/mysql/mysql_3307/data</div>
+<div>[root@mysql data]# ls</div>
+<div>auto.cnf&nbsp; ibdata1&nbsp; ib_logfile0&nbsp; ib_logfile1&nbsp; mysql&nbsp; mysql.pid&nbsp; performance_schema&nbsp; test</div>
+<div><strong>2.13.设置启动文件</strong></div>
+<div>cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql</div>
+<div><strong>2.14.mysqld_multi进行多实例管理</strong></div>
+<div>启动全部实例：/usr/local/mysql/bin/mysqld_multi start</div>
+<div>查看全部实例状态：/usr/local/mysql/bin/mysqld_multi report&nbsp;</div>
+<div>启动单个实例：/usr/local/mysql/bin/mysqld_multi start 3306&nbsp;</div>
+<div>停止单个实例：/usr/local/mysql/bin/mysqld_multi stop 3306&nbsp;</div>
+<div>查看单个实例状态：/usr/local/mysql/bin/mysqld_multi report 3306&nbsp;</div>
+<div><strong>2.14.1.启动全部实例</strong></div>
+<div>[root@mysql ~]# /usr/local/mysql/bin/mysqld_multi start</div>
+<div>[root@mysql ~]# /usr/local/mysql/bin/mysqld_multi report</div>
+<div>Reporting MySQL servers</div>
+<div>MySQL server from group: mysqld3306 is running</div>
+<div>MySQL server from group: mysqld3307 is running</div>
+<div><strong>2.15.查看启动进程&nbsp;&nbsp;</strong></div>
+<div>&nbsp;<img src="http://img.blog.csdn.net/20170511190130026?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveHVjaGVubGlhbmc1NzM=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt=""></div>
+<div>&nbsp;</div>
+<div><strong>2.16.修改密码</strong></div>
+<div>mysql的root用户初始密码是空，所以需要登录mysql进行修改密码，下面以3306为例：&nbsp;</div>
+<div>mysql -S /tmp/mysql_3306.sock&nbsp;&nbsp;&nbsp;</div>
+<div>set password for root@'localhost'=password('123456');&nbsp;</div>
+<div>flush privileges;&nbsp;</div>
+<div>下次登录：</div>
+<div>[root@mysql ~]# mysql -S /tmp/mysql_3306.sock -p</div>
+<div>Enter password:</div>
+<div><strong>2.17.新建用户及授权</strong></div>
+<div>一般新建数据库都需要新增一个用户，用于程序连接，这类用户只需要insert、update、delete、select权限。</div>
+<div>新增一个用户，并授权如下：&nbsp;</div>
+<div>grant select,delete,update,insert on *.* to admin@'192.168.0.%' identified by '123456';&nbsp;</div>
+<div>flush privileges</div>
+<div><strong>2.18.外部软件登录数据库</strong></div>
+<div>&nbsp;<img src="http://img.blog.csdn.net/20170511190148422?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveHVjaGVubGlhbmc1NzM=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt=""></div>
+<div>&nbsp;</div>
+<div><strong>2.19.测试成功</strong></div>
+<div><img src="http://img.blog.csdn.net/20170511190205766?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveHVjaGVubGlhbmc1NzM=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt="">&nbsp;</div>
+<div><strong>3.源码安装常见报错信息</strong></div>
+<div>1：安装mysql报错</div>
+<div>checking for tgetent in -lncurses... no</div>
+<div>checking for tgetent in -lcurses... no</div>
+<div>checking for tgetent in -ltermcap... no</div>
+<div>checking for tgetent in -ltinfo... no</div>
+<div>checking for termcap functions library... configure: error: No curses/termcap library found</div>
+<div>原因：</div>
+<div>缺少ncurses安装包</div>
+<div>解决方法：</div>
+<div>yum list|grep ncurses</div>
+<div>yum -y install ncurses-devel</div>
+<div>yum install ncurses-devel</div>
+<div>2：.../depcomp: line 571: exec: g++: not found</div>
+<div>make[1]: *** [my_new.o] 错误 127</div>
+<div>make[1]: Leaving directory `/home/justme/software/mysql-5.1.30/mysys'</div>
+<div>make: *** [all-recursive] 错误 1</div>
+<div>解决方法：</div>
+<div>yum install gcc-c++</div>
+<div>3：.../include/my_global.h:909: error: redeclaration of C++ built-in type `bool'</div>
+<div>make[2]: *** [my_new.o] Error 1</div>
+<div>make[2]: Leaving directory `/home/tools/mysql-5.0.22/mysys'</div>
+<div>make[1]: *** [all-recursive] Error 1</div>
+<div>make[1]: Leaving directory `/home/tools/mysql-5.0.22'</div>
+<div>make: *** [all] Error 2</div>
+<div>是因为gcc-c++是在configure之后安装的，此时只需重新configure后再编译make即可。</div>
+<div>4：初始化数据库报错</div>
+<div>报错现象：</div>
+<div>root@mysql mysql-6.0.11-alpha]# scripts/mysql_install_db --basedir=/usr/local/mysql/ --user=mysql</div>
+<div>Installing MySQL system tables...</div>
+<div>ERROR: 1136&nbsp; Column count doesn't match value count at row 1</div>
+<div>150414&nbsp; 7:15:56 [ERROR] Aborting</div>
+<div>150414&nbsp; 7:15:56 [Warning] Forcing shutdown of 1 plugins</div>
+<div>150414&nbsp; 7:15:56 [Note] /usr/local/mysql//libexec/mysqld: Shutdown complete</div>
+<div>Installation of system tables failed!&nbsp; Examine the logs in</div>
+<div>/var/lib/mysql for more information.</div>
+<div>You can try to start the mysqld daemon with:</div>
+<div>shell&gt; /usr/local/mysql//libexec/mysqld --skip-grant &amp;</div>
+<div>and use the command line tool /usr/local/mysql//bin/mysql</div>
+<div>to connect to the mysql database and look at the grant tables:</div>
+<div>shell&gt; /usr/local/mysql//bin/mysql -u root mysql</div>
+<div>mysql&gt; show tables</div>
+<div>Try 'mysqld --help' if you have problems with paths.&nbsp; Using --log</div>
+<div>gives you a log in /var/lib/mysql that may be helpful.</div>
+<div>The latest information about MySQL is available on the web at</div>
+<div>http://www.mysql.com/.&nbsp; Please consult the MySQL manual section</div>
+<div>'Problems running mysql_install_db', and the manual section that</div>
+<div>describes problems on your OS.&nbsp; Another information source are the</div>
+<div>MySQL email archives available at http://lists.mysql.com/.</div>
+<div>Please check all of the above before mailing us!&nbsp; And remember, if</div>
+<div>you do mail us, you MUST use the /usr/local/mysql//scripts/mysqlbug script!</div>
+<div>原因：</div>
+<div>原有安装的mysql信息没有删除干净</div>
+<div>解决方法：</div>
+<div>删除/var/lib/mysql目录</div>
+
+</div><!--end: home 自定义的最大容器 -->
+</body>
+</html>

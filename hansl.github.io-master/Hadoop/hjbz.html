@@ -1,0 +1,60 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>环境搭建</title>
+<style type="text/css">
+p {text-indent:24px;line-height:10px;}
+</style>
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="width:1000px;height:auto;margin-left:300px;">
+        <h1 style="margin-left:300px;padding:30px 0px 50px 0px;">环境搭建</h1>
+        <h2>1 配置hadoop 用户</h2>
+            <p>[root@server1 ~]# useradd -u 1000 hadoop</p>
+            <p>[root@server1 ~]# id 1000</p>
+            <p>uid=1000(hadoop) gid=1000(hadoop) groups=1000(hadoop)</p>
+            <p>[root@server1 ~]# id hadoop</p>
+            <p>uid=1000(hadoop) gid=1000(hadoop) groups=1000(hadoop)</p>
+            <p>[root@server1 ~]#</p>
+        <h2>2 下载并解压相关软件</h2>
+            <p>[root@server1 ~]# su - hadoop</p>
+            <p>Last login: Sun Dec 30 22:09:47 CST 2018 on pts/0</p>
+            <p>[hadoop@server1 ~]$ ls</p>
+            <p>hadoop-2.8.5.tar.gz  jdk-8u192-linux-x64.tar.gz</p>
+            <p>[hadoop@server1 ~]$ tar -xf hadoop-2.8.5.tar.gz</p>
+            <p>[hadoop@server1 ~]$ tar -xf jdk-8u192-linux-x64.tar.gz</p>
+            <p>[hadoop@server1 ~]$ ls</p>
+            <p>hadoop-2.8.5  hadoop-2.8.5.tar.gz  jdk1.8.0_192  jdk-8u192-linux-x64.tar.gz</p>
+            <p>[hadoop@server1 ~]$ ln -s hadoop-2.8.5 hadoop</p>
+            <p>[hadoop@server1 ~]$ ln -s jdk.8.0_192 java</p>
+            <p>[hadoop@server1 ~]$ ll</p>
+            <p>total 428468</p>
+            <p>lrwxrwxrwx  1 hadoop hadoop        12 Dec 30 16:50 hadoop -> hadoop-2.8.5</p>
+            <p>drwxr-xr-x 12 hadoop hadoop      4096 Dec 30 20:16 hadoop-2.8.5</p>
+            <p>-rw-r--r--  1 hadoop hadoop 246543928 Sep  9  1979 hadoop-2.8.5.tar.gz</p>
+            <p>lrwxrwxrwx  1 hadoop hadoop        13 Dec 30 16:11 java -> jdk1.8.0_192</p>
+            <p>drwxr-xr-x  7 hadoop hadoop      4096 Oct  6 21:58 jdk1.8.0_192</p>
+            <p>-rw-r--r--  1 root   root   191757099 Sep  9  1979 jdk-8u192-linux-x64.tar.gz</p>
+            <p>[hadoop@server1 ~]$</p>
+        
+        <h2>3 修改环境变量，使得hadoop运行在Java平台之上</h2>
+        
+            <p>[hadoop@server1 ~]$ source hadoop/etc/hadoop/hadoop-env.sh</p>
+            <p>export JAVA_HOME=/home/hadoop/java</p>
+            <p>[hadoop@server1 ~]$ source hadoop/etc/hadoop/hadoop-env.sh</p>
+        
+        <h2>4 修改java环境变量，使其可以查看到hadoop进程开启状态</h2>
+        
+        <p>[hadoop@server1 ~]$ vim .bash_profile</p>
+        <p>PATH=$PATH:$HOME/bin:/home/hadoop/java/bin</p>
+        
+        <h2>5 查看</h2>
+        <p>[hadoop@server1 ~]$ source .bash_profile</p>
+        <p>[hadoop@server1 ~]$ jps</p>
+        <p>1950 jps</p>
+        <p style="padding:20px 0px 30px 500px;"><a href="djdbs.html" >下一篇：单节点布置</a></p>
+	</div>
+</body>
+</html>
