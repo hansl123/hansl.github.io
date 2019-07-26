@@ -1,0 +1,53 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<title>个人简介</title>
+
+</head>
+
+<body style="background-size:100% 100%;background-image:url('http://www.aspire-tech.com/Public/home/images/zw_51.png');
+	     background-attachment: fixed;background-repeat:no-repeat;">
+	<div style="border:solid 1px #000;width:100%;height:auto;">
+		<div style="width:100%;margin-top:50px;">
+        	<h1 style="padding-left:46%">个人简介</h1>
+        </div>
+        <div style="width:790px;margin-top:80px;margin-left:20%;">
+        	<h3>查看文件#cat /etc/ntp.conf</h3>
+            <p>内容如下：</p>
+            <p>driftfile /var/lib/ntp/drift</p>
+            <p>pidfile /var/run/ntpd.pid</p>
+            <p>#logfile /var/log/ntp.log</p>
+            <p></p>
+            <p># Access Control Support</p>
+            <p>restrict    default</p>
+            <p>restrict -6 default</p>
+            <p>restrict    127.0.0.1</p>
+            <p>
+            <p># local clock</p>
+            <p>server 127.127.1.0</p>
+            <p>fudge 127.127.1.0 stratum 3</p>
+            <p>
+            <p>logfile /var/log/ntp.log</p>
+            <p>server time1.aliyun.com iburst minpoll 4 maxpoll 6 prefer</p>
+            <p>server time2.aliyun.com iburst minpoll 4 maxpoll 6</p>
+            
+            
+       <h3>公共时钟源：</h3>     
+            
+    		<p>Unix类系统：time1-7.aliyun.com</p>
+    		<p>Windows： time.pool.aliyun.com</p>
+            
+       <h3>手动同步时钟源</h3>
+			<p>停止ntpd</p>
+            	<p>systemctl stop ntpd.service</p>
+            <p>手动同步</p>
+            	<p>ntpdate 时钟源域名或IP地址</p>
+            <p>重启ntpd服务</p>
+            	<p>systemctl restart ntpd.service</p>
+        </div>
+    </div>
+</body>
+</html>
+
